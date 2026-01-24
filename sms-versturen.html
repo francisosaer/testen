@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SMS versturen</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  padding: 20px;
+  max-width: 420px;
+  margin: auto;
+  text-align: center;
+}
+
+label {
+  font-size: 18px;
+  margin-top: 15px;
+  display: block;
+}
+
+input[type="tel"] {
+  font-size: 18px;
+  padding: 10px;
+  width: 100%;
+}
+
+button {
+  margin-top: 20px;
+  padding: 12px;
+  font-size: 18px;
+  width: 100%;
+  cursor: pointer;
+}
+</style>
+</head>
+
+<body>
+
+<h1>SMS formulier versturen</h1>
+
+<label>Telefoonnummer patiënt</label>
+<input type="tel" id="phone" value="04" inputmode="numeric">
+
+<button onclick="verstuurSMS()">Verstuur SMS</button>
+
+<script>
+function verstuurSMS() {
+  let phone = document.getElementById("phone").value.trim();
+
+  if (!phone.startsWith("04") || phone.length < 9) {
+    alert("Vul een geldig Belgisch gsm-nummer in");
+    return;
+  }
+
+  // Belgisch nummer omzetten
+  phone = "+32" + phone.substring(1);
+
+  // Link naar HET formulier
+  const base =
+    window.location.origin +
+    window.location.pathname.replace("sms-versturen.html", "");
+
+  const url = base + "index.html";
+
+  // SMS openen
+  const smsLink =
+    `sms:${phone}?body=` +
+    encodeURIComponent(
+      "Gelieve dit formulier in te vullen:\n" + url
+    );
+
+  window.location.href = smsLink;
+}
+</script>
+
+</body>
+</html>
