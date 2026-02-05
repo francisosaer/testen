@@ -1,62 +1,97 @@
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Opmeting elementen</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Opmeting</title>
 
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 15px;
-            background: #f2f2f2;
-        }
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #f2f2f2;
+    padding: 15px;
+    margin: 0;
+}
 
-        h2 {
-            text-align: center;
-        }
+h2 {
+    text-align: center;
+}
 
-        select {
-            width: 100%;
-            padding: 12px;
-            font-size: 16px;
-            margin-bottom: 10px;
-        }
+select {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+}
 
-        .element-blok {
-            background: #ffffff;
-            padding: 15px;
-            margin-top: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-        }
+.element-blok {
+    background: #fff;
+    padding: 15px;
+    margin-top: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
 
-        .element-blok strong {
-            font-size: 18px;
-        }
+label {
+    margin-top: 10px;
+    display: block;
+    font-weight: bold;
+}
 
-        label {
-            display: block;
-            margin-top: 12px;
-            font-weight: bold;
-        }
+input[type="number"] {
+    width: 100%;
+    padding: 10px;
+    font-size: 16px;
+}
 
-        input[type="number"],
-        input[type="file"] {
-            width: 100%;
-            padding: 10px;
-            margin-top: 5px;
-            font-size: 16px;
-        }
+.foto-input {
+    display: none;
+}
 
-        .error {
-            color: red;
-            margin-top: 10px;
-            text-align: center;
-        }
-    </style>
+.foto-knop {
+    margin-top: 10px;
+    padding: 12px;
+    background: #007bff;
+    color: white;
+    text-align: center;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.foto-lijst {
+    margin-top: 10px;
+}
+
+.foto-item {
+    position: relative;
+    margin-top: 10px;
+}
+
+.foto-item img {
+    width: 100%;
+    border-radius: 6px;
+}
+
+.verwijder {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: red;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+}
+
+.error {
+    text-align: center;
+    color: red;
+    margin-top: 10px;
+}
+</style>
 </head>
+
 <body>
 
 <h2>Opmeting</h2>
@@ -68,46 +103,78 @@
     <option value="Garagepoort">Garagepoort</option>
 </select>
 
-<div id="elementenContainer"></div>
+<div id="container"></div>
 <div id="error" class="error"></div>
 
 <script>
-    let teller = 0;
-    const maxElementen = 10;
+let teller = 0;
+const max = 10;
 
-    document.getElementById("elementSelect").addEventListener("change", function () {
-        const type = this.value;
-        if (!type) return;
+document.getElementById("elementSelect").addEventListener("change", function() {
+    const type = this.value;
+    if (!type) return;
 
-        if (teller >= maxElementen) {
-            document.getElementById("error").textContent =
-                "Maximum 10 elementen toegestaan.";
-            this.value = "";
-            return;
-        }
+    if (teller >= max) {
+        document.getElementById("error").textContent = "Maximum 10 elementen.";
+        this.value = "";
+        return;
+    }
 
-        document.getElementById("error").textContent = "";
-        teller++;
+    teller++;
+    document.getElementById("error").textContent = "";
 
-        const blok = document.createElement("div");
-        blok.className = "element-blok";
+    const blok = document.createElement("div");
+    blok.className = "element-blok";
 
-        blok.innerHTML = `
-            <strong>${type} ${teller}</strong>
+    blok.innerHTML = `
+        <strong>${type} ${teller}</strong>
 
-            <label>Lengte (cm)</label>
-            <input type="number" placeholder="bv. 120">
+        <label>Lengte (cm)</label>
+        <input type="number">
 
-            <label>Breedte (cm)</label>
-            <input type="number" placeholder="bv. 90">
+        <label>Breedte (cm)</label>
+        <input type="number">
 
-            <label>Foto</label>
-            <input type="file" accept="image/*" capture="environment">
+        <input type="file" class="foto-input" accept="image/*" capture="environment">
+
+        <div class="foto-knop">📸 Foto maken</div>
+
+        <div class="foto-lijst"></div>
+    `;
+
+    document.getElementById("container").appendChild(blok);
+    this.value = "";
+});
+
+document.addEventListener("click", function(e) {
+    if (e.target.classList.contains("foto-knop")) {
+        const input = e.target.previousElementSibling;
+        input.click();
+    }
+
+    if (e.target.classList.contains("verwijder")) {
+        e.target.parentElement.remove();
+    }
+});
+
+document.addEventListener("change", function(e) {
+    if (e.target.classList.contains("foto-input")) {
+        const lijst = e.target.nextElementSibling.nextElementSibling;
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const fotoDiv = document.createElement("div");
+        fotoDiv.className = "foto-item";
+
+        fotoDiv.innerHTML = `
+            <img src="${URL.createObjectURL(file)}">
+            <button class="verwijder">×</button>
         `;
 
-        document.getElementById("elementenContainer").appendChild(blok);
-        this.value = "";
-    });
+        lijst.appendChild(fotoDiv);
+        e.target.value = "";
+    }
+});
 </script>
 
 </body>
