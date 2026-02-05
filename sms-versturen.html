@@ -1,87 +1,114 @@
 <!DOCTYPE html>
 <html lang="nl">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Opmeting elementen</title>
 
-  
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SMS versturen</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 15px;
+            background: #f2f2f2;
+        }
 
-<style>
-  
-  
-  
-  
-  body {
-  font-family: Arial, sans-serif;
-  padding: 20px;
-  max-width: 420px;
-  margin: auto;
-  text-align: center;
-}
+        h2 {
+            text-align: center;
+        }
 
-label {
-  font-size: 18px;
-  margin-top: 15px;
-  display: block;
-}
+        select {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
 
-input[type="tel"] {
-  font-size: 18px;
-  padding: 10px;
-  width: 100%;
-}
+        .element-blok {
+            background: #ffffff;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
 
-button {
-  margin-top: 20px;
-  padding: 12px;
-  font-size: 18px;
-  width: 100%;
-  cursor: pointer;
-}
-</style>
+        .element-blok strong {
+            font-size: 18px;
+        }
+
+        label {
+            display: block;
+            margin-top: 12px;
+            font-weight: bold;
+        }
+
+        input[type="number"],
+        input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            font-size: 16px;
+        }
+
+        .error {
+            color: red;
+            margin-top: 10px;
+            text-align: center;
+        }
+    </style>
 </head>
-
 <body>
 
-<h1>SMS formulier versturen</h1>
+<h2>Opmeting</h2>
 
-<label>Telefoonnummer patiënt</label>
-<input type="tel" id="phone" value="04" inputmode="numeric">
+<select id="elementSelect">
+    <option value="">Kies element</option>
+    <option value="Raam">Raam</option>
+    <option value="Deur">Deur</option>
+    <option value="Garagepoort">Garagepoort</option>
+</select>
 
-<button onclick="verstuurSMS()">Verstuur SMS</button>
+<div id="elementenContainer"></div>
+<div id="error" class="error"></div>
 
 <script>
-function verstuurSMS() {
-  let phone = document.getElementById("phone").value.trim();
+    let teller = 0;
+    const maxElementen = 10;
 
-  if (!phone.startsWith("04") || phone.length < 9) {
-    alert("Vul een geldig Belgisch gsm-nummer in");
-    return;
-  }
+    document.getElementById("elementSelect").addEventListener("change", function () {
+        const type = this.value;
+        if (!type) return;
 
-  // Belgisch nummer omzetten
-  phone = "+32" + phone.substring(1);
+        if (teller >= maxElementen) {
+            document.getElementById("error").textContent =
+                "Maximum 10 elementen toegestaan.";
+            this.value = "";
+            return;
+        }
 
-  // Link naar HET formulier
-  const base =
-    window.location.origin +
-    window.location.pathname.replace("sms-versturen.html", "");
+        document.getElementById("error").textContent = "";
+        teller++;
 
-  const url = base + "index.html";
+        const blok = document.createElement("div");
+        blok.className = "element-blok";
 
-  // SMS openen
-  const smsLink =
-    `sms:${phone}?body=` +
-    encodeURIComponent(
-      "Gelieve dit formulier in te vullen:\n" + url
-    );
+        blok.innerHTML = `
+            <strong>${type} ${teller}</strong>
 
-  window.location.href = smsLink;
-}
+            <label>Lengte (cm)</label>
+            <input type="number" placeholder="bv. 120">
+
+            <label>Breedte (cm)</label>
+            <input type="number" placeholder="bv. 90">
+
+            <label>Foto</label>
+            <input type="file" accept="image/*" capture="environment">
+        `;
+
+        document.getElementById("elementenContainer").appendChild(blok);
+        this.value = "";
+    });
 </script>
 
 </body>
-
 </html>
-
