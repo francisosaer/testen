@@ -31,22 +31,34 @@ button { margin-top:10px; padding:10px; font-size:16px; cursor:pointer; }
 <script>
 const container = document.getElementById("elements");
 const counters = { Raam:0, Deur:0, Poort:0 };
-let totalElements = 0;
-const maxElements = 30;
+
+function updateNumbering() {
+  const types = ["Raam", "Deur", "Poort"];
+  types.forEach(type => {
+    let count = 0;
+    container.querySelectorAll(".element").forEach(el => {
+      const label = el.querySelector(".label");
+      if(label.dataset.type === type){
+        count++;
+        label.textContent = `${type} ${count}`;
+      }
+    });
+    counters[type] = count;
+  });
+}
 
 document.getElementById("addElementBtn").onclick = () => {
-  if(totalElements >= maxElements) return;
+  if(container.querySelectorAll(".element").length >= 30) return;
 
   const type = prompt("Kies type element: Raam, Deur of Poort");
   if(!type || !["Raam","Deur","Poort"].includes(type)) return alert("Ongeldig type");
 
-  totalElements++;
-  counters[type]++;
+  counters[type] = (counters[type] || 0) + 1;
 
   const el = document.createElement("div");
   el.className = "element";
   el.innerHTML = `
-    <strong>${type} ${counters[type]}</strong>
+    <strong class="label" data-type="${type}">${type} ${counters[type]}</strong>
     <button class="remove-btn">🗑</button>
     <label>Breedte (cm)</label>
     <input type="number">
@@ -55,15 +67,14 @@ document.getElementById("addElementBtn").onclick = () => {
   `;
   container.appendChild(el);
 
+  // Verwijderen element
   el.querySelector(".remove-btn").onclick = () => {
     el.remove();
-    totalElements--;
+    updateNumbering();
   };
 };
 </script>
 
 </body>
 </html>
-
-
 
