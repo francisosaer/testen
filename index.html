@@ -8,29 +8,22 @@
 
 <style>
 /* ===== BASIS ===== */
-html {
-  font-size: 24px; /* GROTE LETTERGROOTTE */
-}
-
+html { font-size:28px; } /* GROTE LETTERGROOTTE voor smartphone */
 body {
   font-family: Arial, sans-serif;
   background:#f4f6f8;
   max-width:1100px;
   margin:auto;
-  padding:16px;
+  padding:18px;
 }
-
-h1 {
-  text-align:center;
-  font-size:2rem;
-}
+h1 { text-align:center; font-size:2.4rem; margin-bottom:20px; }
 
 /* ===== KAARTEN ===== */
 .card, .element {
   background:#fff;
   border-radius:12px;
   padding:18px;
-  margin-bottom:18px;
+  margin-bottom:20px;
   box-shadow:0 3px 8px rgba(0,0,0,.15);
 }
 
@@ -38,31 +31,36 @@ label {
   display:block;
   font-weight:bold;
   margin-top:14px;
-  font-size:1.2rem;
+  font-size:1.4rem;
 }
 
 input, select {
   width:100%;
   padding:16px;
-  font-size:1.2rem;
+  font-size:1.4rem;
   margin-top:6px;
 }
 
-/* ===== ELEMENT ===== */
+/* ===== ELEMENT HEADER ===== */
 .element-header {
   display:flex;
   justify-content:space-between;
   align-items:center;
-  margin-bottom:10px;
+  margin-bottom:12px;
 }
 
 .remove-btn {
-  background:#e74c3c;
+  background:#f44336;
   color:white;
   border:none;
-  padding:12px 16px;
-  font-size:1rem;
-  border-radius:8px;
+  width:38px;
+  height:38px;
+  font-size:1.6rem;
+  border-radius:50%;
+  cursor:pointer;
+  line-height:1;
+  text-align:center;
+  padding:0;
 }
 
 /* ===== GRID ===== */
@@ -77,13 +75,13 @@ input, select {
 .photo-box {
   border:3px dashed #bbb;
   border-radius:12px;
-  padding:12px;
+  padding:14px;
   text-align:center;
-  margin-top:12px;
+  margin-top:14px;
 }
 
 .camera-btn {
-  font-size:72px;
+  font-size:80px;
   line-height:1;
   cursor:pointer;
   user-select:none;
@@ -91,41 +89,36 @@ input, select {
 
 .photo-box img {
   width:100%;
-  margin-top:12px;
+  margin-top:14px;
   border-radius:8px;
   display:none;
 }
 
-/* VERBERG file input VOLLEDIG */
-.file-input {
-  display:none;
-}
+.file-input { display:none; }
 
 /* ===== KNOPPEN ===== */
 button {
   width:100%;
-  padding:18px;
-  font-size:1.4rem;
+  padding:20px;
+  font-size:1.6rem;
   border:none;
   border-radius:12px;
   cursor:pointer;
 }
 
-.primary {
-  background:#2c7be5;
-  color:#fff;
-}
+.primary { background:#2c7be5; color:#fff; }
 
 .actions {
   display:grid;
   grid-template-columns:1fr 1fr 1fr;
-  gap:12px;
+  gap:14px;
 }
 
 /* ===== SMARTPHONE EXTRA ===== */
 @media(max-width:700px){
-  html { font-size:26px; }
-  h1 { font-size:2.2rem; }
+  html { font-size:30px; }
+  h1 { font-size:2.6rem; }
+  .camera-btn { font-size:90px; }
 }
 </style>
 </head>
@@ -159,7 +152,7 @@ let totalElements = 0;
 const maxElements = 30;
 
 document.getElementById("addElement").onclick = () => {
-  if (totalElements >= maxElements) return;
+  if(totalElements >= maxElements) return;
   totalElements++;
 
   const el = document.createElement("div");
@@ -168,7 +161,7 @@ document.getElementById("addElement").onclick = () => {
   el.innerHTML = `
     <div class="element-header">
       <strong class="label">Element</strong>
-      <button class="remove-btn">✖</button>
+      <button class="remove-btn">❌</button>
     </div>
 
     <label>Type</label>
@@ -205,7 +198,7 @@ document.getElementById("addElement").onclick = () => {
   const img = el.querySelector("img");
 
   type.onchange = () => {
-    if (!type.value) return;
+    if(!type.value) return;
     counters[type.value]++;
     label.textContent = `${type.value} ${counters[type.value]}`;
     details.style.display = "block";
@@ -215,19 +208,18 @@ document.getElementById("addElement").onclick = () => {
 
   file.onchange = () => {
     const f = file.files[0];
-    if (!f) return;
-    if (f.size > 2 * 1024 * 1024) return alert("Foto max 2MB");
+    if(!f) return;
+    if(f.size > 2*1024*1024) return alert("Foto max 2MB");
 
     const r = new FileReader();
-    r.onload = e => { img.src = e.target.result; img.style.display="block"; };
+    r.onload = e => { img.src=e.target.result; img.style.display="block"; };
     r.readAsDataURL(f);
   };
 
   remove.onclick = () => { el.remove(); totalElements--; };
 };
 
-/* OPSLAAN, LADEN, PDF (zelfde als voorheen) */
-
+/* OPSLAAN, LADEN, PDF */
 document.getElementById("saveProject").onclick = () => {
   const data = {
     klant: clientName.value,
@@ -288,10 +280,7 @@ document.getElementById("exportPDF").onclick = () => {
     const label = el.querySelector(".label").textContent;
     const img = el.querySelector("img").src;
     pdf.text(label,10,y); y+=6;
-    if(img){
-      pdf.addImage(img,"JPEG",10,y,40,30);
-      y+=35;
-    }
+    if(img) { pdf.addImage(img,"JPEG",10,y,40,30); y+=35; }
   });
 
   pdf.save("opmeting.pdf");
@@ -300,3 +289,5 @@ document.getElementById("exportPDF").onclick = () => {
 
 </body>
 </html>
+
+
