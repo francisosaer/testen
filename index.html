@@ -77,15 +77,16 @@ const counters = { Raam:0, Deur:0, Poort:0 };
 let totalElements = 0;
 const maxElements = 30;
 
+// Functie om add-options onder element te maken
 function createAddOptions(afterEl=null){
   const addDiv = document.createElement("div");
   addDiv.className="add-options";
   ["Raam","Deur","Poort"].forEach(type=>{
     const btn = document.createElement("button");
     btn.textContent=type;
-    btn.onclick=()=>{ 
+    btn.onclick=()=>{
       addElement(type, addDiv);
-      addDiv.remove(); // verwijder deze optie na keuze
+      // knop blijft staan voor verdere elementen
     };
     addDiv.appendChild(btn);
   });
@@ -120,6 +121,7 @@ function addElement(type, afterEl=null){
       <div class="photo-container"></div>
     </div>
   `;
+
   if(afterEl) container.insertBefore(el, afterEl.nextSibling);
   else container.appendChild(el);
 
