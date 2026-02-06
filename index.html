@@ -63,13 +63,6 @@ button { width:100%; padding:20px; font-size:1.6rem; border:none; border-radius:
   <input type="date" id="projectDate">
 </div>
 
-<button id="addElementBtn" class="primary">+ Element toevoegen</button>
-<div class="add-options" id="elementOptions" style="display:none;">
-  <button data-type="Raam">Raam</button>
-  <button data-type="Deur">Deur</button>
-  <button data-type="Poort">Poort</button>
-</div>
-
 <div id="elements"></div>
 
 <div class="card actions">
@@ -84,29 +77,33 @@ const counters = { Raam:0, Deur:0, Poort:0 };
 let totalElements = 0;
 const maxElements = 30;
 
-const addBtn = document.getElementById("addElementBtn");
-const elementOptions = document.getElementById("elementOptions");
+function createAddOptions(afterEl=null){
+  const addDiv = document.createElement("div");
+  addDiv.className="add-options";
+  ["Raam","Deur","Poort"].forEach(type=>{
+    const btn = document.createElement("button");
+    btn.textContent=type;
+    btn.onclick=()=>{ 
+      addElement(type, addDiv);
+      addDiv.remove(); // verwijder deze optie na keuze
+    };
+    addDiv.appendChild(btn);
+  });
+  if(afterEl) container.insertBefore(addDiv, afterEl.nextSibling);
+  else container.appendChild(addDiv);
+}
 
-addBtn.onclick = () => {
-  elementOptions.style.display = elementOptions.style.display === "flex" ? "none" : "flex";
-};
+// eerste "+ Element toevoegen" bovenaan
+createAddOptions();
 
-elementOptions.querySelectorAll("button").forEach(btn => {
-  btn.onclick = () => {
-    const type = btn.dataset.type;
-    addElement(type);
-    elementOptions.style.display = "none";
-  }
-});
-
-function addElement(type) {
-  if(totalElements >= maxElements) return;
+function addElement(type, afterEl=null){
+  if(totalElements>=maxElements) return;
   totalElements++;
   counters[type]++;
 
   const el = document.createElement("div");
-  el.className = "element";
-  el.innerHTML = `
+  el.className="element";
+  el.innerHTML=`
     <div class="element-header">
       <strong class="label">${type} ${counters[type]}</strong>
       <button class="remove-btn">
@@ -115,141 +112,131 @@ function addElement(type) {
         </svg>
       </button>
     </div>
-    <label>Breedte (cm)</label>
-    <input type="number">
-    <label>Hoogte (cm)</label>
-    <input type="number">
+    <label>Breedte (cm)</label><input type="number">
+    <label>Hoogte (cm)</label><input type="number">
     <div class="photo-box">
       <div class="camera-btn">📷</div>
-      <input class="file-input" type="file" accept="image/*" capture="environment">
+      <input class="file-input" type="file" accept="image/*" capture="environment" style="display:none">
       <div class="photo-container"></div>
     </div>
   `;
-  container.appendChild(el);
+  if(afterEl) container.insertBefore(el, afterEl.nextSibling);
+  else container.appendChild(el);
 
-  // Element verwijderen
-  el.querySelector(".remove-btn").onclick = (event) => {
-    event.currentTarget.closest(".element").remove();
-    totalElements--;
-  };
+  // element verwijderen
+  el.querySelector(".remove-btn").onclick=()=>{el.remove(); totalElements--;};
 
-  // Foto toevoegen en compressie, meerdere foto’s
+  // foto toevoegen meerdere
   const cam = el.querySelector(".camera-btn");
   const fileInput = el.querySelector(".file-input");
   const photoContainer = el.querySelector(".photo-container");
-
-  cam.onclick = () => fileInput.click();
-
-  fileInput.onchange = () => {
-    const f = fileInput.files[0];
+  cam.onclick=()=>fileInput.click();
+  fileInput.onchange=()=>{
+    const f=fileInput.files[0];
     if(!f) return;
-
     const reader = new FileReader();
-    reader.onload = e => {
-      const imgObj = new Image();
-      imgObj.onload = () => {
-        const canvas = document.createElement("canvas");
-        const maxWidth = 800;
-        let scale = Math.min(1, maxWidth / imgObj.width);
-        canvas.width = imgObj.width * scale;
-        canvas.height = imgObj.height * scale;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(imgObj,0,0,canvas.width,canvas.height);
+    reader.onload=e=>{
+      const imgObj=new Image();
+      imgObj.onload=()=>{
+        const canvas=document.createElement("canvas");
+        const maxWidth=800;
+        const scale=Math.min(1,maxWidth/imgObj.width);
+        canvas.width=imgObj.width*scale;
+        canvas.height=imgObj.height*scale;
+        canvas.getContext("2d").drawImage(imgObj,0,0,canvas.width,canvas.height);
+        const imgData=canvas.toDataURL("image/jpeg",0.6);
 
-        const imgData = canvas.toDataURL("image/jpeg",0.6);
+        const photoWrapper=document.createElement("div");
+        photoWrapper.style.position="relative";
+        photoWrapper.style.marginTop="10px";
 
-        const photoWrapper = document.createElement("div");
-        photoWrapper.style.position = "relative";
-        photoWrapper.style.marginTop = "10px";
+        const imgEl=document.createElement("img");
+        imgEl.src=imgData;
 
-        const imgEl = document.createElement("img");
-        imgEl.src = imgData;
-
-        const removeBtn = document.createElement("button");
-        removeBtn.textContent = "✖";
-        removeBtn.className = "remove-photo";
-        removeBtn.onclick = () => photoWrapper.remove();
+        const removeBtn=document.createElement("button");
+        removeBtn.textContent="✖";
+        removeBtn.className="remove-photo";
+        removeBtn.onclick=()=>photoWrapper.remove();
 
         photoWrapper.appendChild(imgEl);
         photoWrapper.appendChild(removeBtn);
         photoContainer.appendChild(photoWrapper);
       }
-      imgObj.src = e.target.result;
+      imgObj.src=e.target.result;
     }
     reader.readAsDataURL(f);
   }
+
+  // nieuwe "+ Element toevoegen" onder dit element
+  createAddOptions(el);
 }
 
 // Opslaan, laden, PDF
-document.getElementById("saveProject").onclick = () => {
-  const data = { klant: clientName.value, datum: projectDate.value, elementen:[] };
+document.getElementById("saveProject").onclick=()=>{
+  const data={klant:clientName.value,datum:projectDate.value,elementen:[]};
   document.querySelectorAll(".element").forEach(el=>{
-    const label = el.querySelector(".label").textContent;
-    const breedte = el.querySelectorAll("input[type=number]")[0].value;
-    const hoogte = el.querySelectorAll("input[type=number]")[1].value;
-    const fotos = Array.from(el.querySelectorAll(".photo-container img")).map(img=>img.src);
-    data.elementen.push({ type: label, breedte, hoogte, fotos });
+    const label=el.querySelector(".label").textContent;
+    const breedte=el.querySelectorAll("input[type=number]")[0].value;
+    const hoogte=el.querySelectorAll("input[type=number]")[1].value;
+    const fotos=Array.from(el.querySelectorAll(".photo-container img")).map(img=>img.src);
+    data.elementen.push({type:label,breedte,hoogte,fotos});
   });
-  localStorage.setItem(data.klant, JSON.stringify(data));
+  localStorage.setItem(data.klant,JSON.stringify(data));
   alert("Project opgeslagen");
 };
 
-document.getElementById("loadProject").onclick = () => {
-  const name = prompt("Klantnaam?");
-  const data = JSON.parse(localStorage.getItem(name));
+document.getElementById("loadProject").onclick=()=>{
+  const name=prompt("Klantnaam?");
+  const data=JSON.parse(localStorage.getItem(name));
   if(!data) return alert("Niet gevonden");
   container.innerHTML="";
   clientName.value=data.klant;
   projectDate.value=data.datum;
-
   data.elementen.forEach(e=>{
     addElement(e.type.split(' ')[0]);
-    const el = container.lastChild;
+    const el=container.lastChild;
     el.querySelectorAll("input[type=number]")[0].value=e.breedte;
     el.querySelectorAll("input[type=number]")[1].value=e.hoogte;
-    const photoContainer = el.querySelector(".photo-container");
+    const photoContainer=el.querySelector(".photo-container");
     e.fotos.forEach(src=>{
-      const photoWrapper = document.createElement("div");
-      photoWrapper.style.position = "relative";
-      photoWrapper.style.marginTop = "10px";
+      const photoWrapper=document.createElement("div");
+      photoWrapper.style.position="relative";
+      photoWrapper.style.marginTop="10px";
 
-      const imgEl = document.createElement("img");
-      imgEl.src = src;
-      imgEl.style.width = "100%";
-      imgEl.style.borderRadius = "8px";
+      const imgEl=document.createElement("img");
+      imgEl.src=src;
+      imgEl.style.width="100%";
+      imgEl.style.borderRadius="8px";
 
-      const removeBtn = document.createElement("button");
-      removeBtn.textContent = "✖";
-      removeBtn.className = "remove-photo";
-      removeBtn.onclick = () => photoWrapper.remove();
+      const removeBtn=document.createElement("button");
+      removeBtn.textContent="✖";
+      removeBtn.className="remove-photo";
+      removeBtn.onclick=()=>photoWrapper.remove();
 
       photoWrapper.appendChild(imgEl);
       photoWrapper.appendChild(removeBtn);
       photoContainer.appendChild(photoWrapper);
     });
+    createAddOptions(el);
   });
 };
 
-document.getElementById("exportPDF").onclick = () => {
-  const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF();
+document.getElementById("exportPDF").onclick=()=>{
+  const {jsPDF}=window.jspdf;
+  const pdf=new jsPDF();
   let y=10;
   pdf.setFontSize(16);
   pdf.text("Opmeetrapport",10,y); y+=10;
   pdf.setFontSize(12);
   pdf.text(`Klant: ${clientName.value}`,10,y); y+=8;
   pdf.text(`Datum: ${projectDate.value}`,10,y); y+=10;
-
   document.querySelectorAll(".element").forEach(el=>{
-    const label = el.querySelector(".label").textContent;
-    const breedte = el.querySelectorAll("input[type=number]")[0].value;
-    const hoogte = el.querySelectorAll("input[type=number]")[1].value;
-    const imgs = el.querySelectorAll(".photo-container img");
+    const label=el.querySelector(".label").textContent;
+    const breedte=el.querySelectorAll("input[type=number]")[0].value;
+    const hoogte=el.querySelectorAll("input[type=number]")[1].value;
+    const imgs=el.querySelectorAll(".photo-container img");
     pdf.text(`${label} - ${breedte} x ${hoogte} cm`,10,y); y+=6;
-    imgs.forEach(img=>{
-      pdf.addImage(img.src,"JPEG",10,y,40,30);
-      y+=35;
-    });
+    imgs.forEach(img=>{pdf.addImage(img.src,"JPEG",10,y,40,30); y+=35;});
   });
   pdf.save("opmeting.pdf");
 };
@@ -257,3 +244,4 @@ document.getElementById("exportPDF").onclick = () => {
 
 </body>
 </html>
+
