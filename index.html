@@ -7,114 +7,29 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
-/* ===== BASIS ===== */
-html { font-size:28px; } /* GROTE LETTERGROOTTE voor smartphone */
-body {
-  font-family: Arial, sans-serif;
-  background:#f4f6f8;
-  max-width:1100px;
-  margin:auto;
-  padding:18px;
-}
+html { font-size:28px; } /* grote tekst voor smartphone */
+body { font-family: Arial, sans-serif; background:#f4f6f8; max-width:1100px; margin:auto; padding:18px; }
 h1 { text-align:center; font-size:2.4rem; margin-bottom:20px; }
 
-/* ===== KAARTEN ===== */
-.card, .element {
-  background:#fff;
-  border-radius:12px;
-  padding:18px;
-  margin-bottom:20px;
-  box-shadow:0 3px 8px rgba(0,0,0,.15);
-}
+.card, .element { background:#fff; border-radius:12px; padding:18px; margin-bottom:20px; box-shadow:0 3px 8px rgba(0,0,0,.15); }
+label { display:block; font-weight:bold; margin-top:14px; font-size:1.4rem; }
+input, select { width:100%; padding:16px; font-size:1.4rem; margin-top:6px; }
 
-label {
-  display:block;
-  font-weight:bold;
-  margin-top:14px;
-  font-size:1.4rem;
-}
+.element-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+.remove-btn { background:#f44336; color:white; border:none; width:40px; height:40px; font-size:1.6rem; border-radius:50%; cursor:pointer; line-height:1; text-align:center; padding:0; }
 
-input, select {
-  width:100%;
-  padding:16px;
-  font-size:1.4rem;
-  margin-top:6px;
-}
-
-/* ===== ELEMENT HEADER ===== */
-.element-header {
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:12px;
-}
-
-.remove-btn {
-  background:#f44336;
-  color:white;
-  border:none;
-  width:38px;
-  height:38px;
-  font-size:1.6rem;
-  border-radius:50%;
-  cursor:pointer;
-  line-height:1;
-  text-align:center;
-  padding:0;
-}
-
-/* ===== GRID ===== */
-.grid {
-  display:grid;
-  grid-template-columns:1fr;
-  gap:16px;
-  margin-top:10px;
-}
-
-/* ===== FOTO ===== */
-.photo-box {
-  border:3px dashed #bbb;
-  border-radius:12px;
-  padding:14px;
-  text-align:center;
-  margin-top:14px;
-}
-
-.camera-btn {
-  font-size:80px;
-  line-height:1;
-  cursor:pointer;
-  user-select:none;
-}
-
-.photo-box img {
-  width:100%;
-  margin-top:14px;
-  border-radius:8px;
-  display:none;
-}
-
+.photo-box { border:3px dashed #bbb; border-radius:12px; padding:14px; text-align:center; margin-top:14px; }
+.camera-btn { font-size:80px; line-height:1; cursor:pointer; user-select:none; }
+.photo-box img { width:100%; margin-top:14px; border-radius:8px; display:none; }
 .file-input { display:none; }
 
-/* ===== KNOPPEN ===== */
-button {
-  width:100%;
-  padding:20px;
-  font-size:1.6rem;
-  border:none;
-  border-radius:12px;
-  cursor:pointer;
-}
-
+button { width:100%; padding:20px; font-size:1.6rem; border:none; border-radius:12px; cursor:pointer; }
 .primary { background:#2c7be5; color:#fff; }
+.actions { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; }
 
-.actions {
-  display:grid;
-  grid-template-columns:1fr 1fr 1fr;
-  gap:14px;
-}
+/* dropdown-element toevoegen */
+#elementTypeDropdown { display:none; margin-top:10px; font-size:1.4rem; padding:14px; }
 
-/* ===== SMARTPHONE EXTRA ===== */
 @media(max-width:700px){
   html { font-size:30px; }
   h1 { font-size:2.6rem; }
@@ -130,14 +45,19 @@ button {
 <div class="card">
   <label>Klantnaam</label>
   <input id="clientName">
-
   <label>Projectdatum</label>
   <input type="date" id="projectDate">
 </div>
 
-<div id="elements"></div>
+<button id="addElementBtn" class="primary">+ Element toevoegen</button>
+<select id="elementTypeDropdown">
+  <option value="">-- Kies type --</option>
+  <option value="Raam">Raam</option>
+  <option value="Deur">Deur</option>
+  <option value="Poort">Poort</option>
+</select>
 
-<button id="addElement" class="primary">+ Element toevoegen</button>
+<div id="elements"></div>
 
 <div class="card actions">
   <button id="saveProject" class="primary">💾 Opslaan</button>
@@ -151,58 +71,53 @@ const counters = { Raam:0, Deur:0, Poort:0 };
 let totalElements = 0;
 const maxElements = 30;
 
-document.getElementById("addElement").onclick = () => {
+const addBtn = document.getElementById("addElementBtn");
+const typeDropdown = document.getElementById("elementTypeDropdown");
+
+addBtn.onclick = () => {
+  typeDropdown.style.display = typeDropdown.style.display === "block" ? "none" : "block";
+};
+
+typeDropdown.onchange = () => {
+  const selectedType = typeDropdown.value;
+  if(!selectedType) return;
+  typeDropdown.value = ""; // reset dropdown
+  typeDropdown.style.display = "none";
+
   if(totalElements >= maxElements) return;
   totalElements++;
 
+  counters[selectedType]++;
   const el = document.createElement("div");
   el.className = "element";
 
   el.innerHTML = `
     <div class="element-header">
-      <strong class="label">Element</strong>
-      <button class="remove-btn">❌</button>
+      <strong class="label">${selectedType} ${counters[selectedType]}</strong>
+      <button class="remove-btn">🗑️</button>
     </div>
 
-    <label>Type</label>
-    <select class="type">
-      <option value="">-- kies --</option>
-      <option>Raam</option>
-      <option>Deur</option>
-      <option>Poort</option>
-    </select>
+    <label>Breedte (cm)</label>
+    <input type="number">
 
-    <div class="details" style="display:none">
-      <label>Breedte (cm)</label>
-      <input type="number">
+    <label>Hoogte (cm)</label>
+    <input type="number">
 
-      <label>Hoogte (cm)</label>
-      <input type="number">
-
-      <div class="photo-box">
-        <div class="camera-btn">📷</div>
-        <input class="file-input" type="file" accept="image/*" capture="environment">
-        <img>
-      </div>
+    <div class="photo-box">
+      <div class="camera-btn">📷</div>
+      <input class="file-input" type="file" accept="image/*" capture="environment">
+      <img>
     </div>
   `;
 
   container.appendChild(el);
 
-  const type = el.querySelector(".type");
-  const label = el.querySelector(".label");
-  const details = el.querySelector(".details");
   const remove = el.querySelector(".remove-btn");
   const cam = el.querySelector(".camera-btn");
   const file = el.querySelector(".file-input");
   const img = el.querySelector("img");
 
-  type.onchange = () => {
-    if(!type.value) return;
-    counters[type.value]++;
-    label.textContent = `${type.value} ${counters[type.value]}`;
-    details.style.display = "block";
-  };
+  remove.onclick = () => { el.remove(); totalElements--; };
 
   cam.onclick = () => file.click();
 
@@ -215,29 +130,20 @@ document.getElementById("addElement").onclick = () => {
     r.onload = e => { img.src=e.target.result; img.style.display="block"; };
     r.readAsDataURL(f);
   };
-
-  remove.onclick = () => { el.remove(); totalElements--; };
 };
 
 /* OPSLAAN, LADEN, PDF */
 document.getElementById("saveProject").onclick = () => {
-  const data = {
-    klant: clientName.value,
-    datum: projectDate.value,
-    elementen:[]
-  };
-
+  const data = { klant: clientName.value, datum: projectDate.value, elementen:[] };
   document.querySelectorAll(".element").forEach(el=>{
-    const type = el.querySelector(".label").textContent;
-    if(!type) return;
+    const label = el.querySelector(".label").textContent;
     data.elementen.push({
-      type,
+      type: label,
       breedte: el.querySelectorAll("input[type=number]")[0].value,
       hoogte: el.querySelectorAll("input[type=number]")[1].value,
       foto: el.querySelector("img").src || ""
     });
   });
-
   localStorage.setItem(data.klant, JSON.stringify(data));
   alert("Project opgeslagen");
 };
@@ -252,16 +158,18 @@ document.getElementById("loadProject").onclick = () => {
   projectDate.value=data.datum;
 
   data.elementen.forEach(e=>{
-    document.getElementById("addElement").click();
+    const event = new Event('change');
+    typeDropdown.style.display="block";
+    typeDropdown.value=e.type.split(' ')[0];
+    typeDropdown.dispatchEvent(event);
+
     const el = container.lastChild;
-    el.querySelector(".label").textContent=e.type;
     el.querySelectorAll("input[type=number]")[0].value=e.breedte;
     el.querySelectorAll("input[type=number]")[1].value=e.hoogte;
     if(e.foto){
       el.querySelector("img").src=e.foto;
       el.querySelector("img").style.display="block";
     }
-    el.querySelector(".details").style.display="block";
   });
 };
 
@@ -269,7 +177,6 @@ document.getElementById("exportPDF").onclick = () => {
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF();
   let y=10;
-
   pdf.setFontSize(16);
   pdf.text("Opmeetrapport",10,y); y+=10;
   pdf.setFontSize(12);
@@ -282,12 +189,9 @@ document.getElementById("exportPDF").onclick = () => {
     pdf.text(label,10,y); y+=6;
     if(img) { pdf.addImage(img,"JPEG",10,y,40,30); y+=35; }
   });
-
   pdf.save("opmeting.pdf");
 };
 </script>
 
 </body>
 </html>
-
-
