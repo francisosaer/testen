@@ -7,96 +7,141 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
+/* ===== BASIS ===== */
+html {
+  font-size: 20px;
+}
+
 body {
   font-family: Arial, sans-serif;
   background:#f4f6f8;
   max-width:1100px;
   margin:auto;
-  padding:20px;
-  font-size:18px;
+  padding:16px;
 }
 
-h1 { text-align:center; }
+h1 {
+  text-align:center;
+  font-size:1.6rem;
+}
 
-.card {
+/* ===== KAARTEN ===== */
+.card, .element {
   background:#fff;
-  border-radius:10px;
+  border-radius:12px;
   padding:18px;
-  margin-bottom:20px;
-  box-shadow:0 3px 8px rgba(0,0,0,.12);
+  margin-bottom:18px;
+  box-shadow:0 3px 8px rgba(0,0,0,.15);
 }
 
-label { font-weight:bold; margin-top:10px; display:block; }
+label {
+  display:block;
+  font-weight:bold;
+  margin-top:14px;
+  font-size:1rem;
+}
 
 input, select {
   width:100%;
-  padding:10px;
-  font-size:18px;
-  margin-top:4px;
-}
-
-button {
   padding:14px;
-  font-size:18px;
-  border:none;
-  border-radius:8px;
-  cursor:pointer;
+  font-size:1.1rem;
+  margin-top:6px;
 }
 
-.primary { background:#2c7be5; color:#fff; }
-.danger { background:#e74c3c; color:#fff; }
-
-.element {
-  background:#fff;
-  border-radius:10px;
-  padding:15px;
-  margin-bottom:15px;
-  box-shadow:0 2px 6px rgba(0,0,0,.1);
-}
-
+/* ===== ELEMENT ===== */
 .element-header {
   display:flex;
   justify-content:space-between;
   align-items:center;
+  margin-bottom:10px;
 }
 
+.remove-btn {
+  background:#e74c3c;
+  color:white;
+  border:none;
+  padding:10px 14px;
+  font-size:1rem;
+  border-radius:8px;
+}
+
+/* ===== GRID ===== */
 .grid {
   display:grid;
   grid-template-columns:2fr 1fr;
-  gap:15px;
+  gap:16px;
   margin-top:10px;
 }
 
+/* ===== FOTO ===== */
 .photo-box {
-  border:2px dashed #ccc;
-  border-radius:10px;
-  padding:10px;
+  border:3px dashed #bbb;
+  border-radius:12px;
+  padding:12px;
   text-align:center;
 }
 
-.photo-box img {
-  max-width:100%;
-  margin-top:10px;
-  display:none;
-  border-radius:6px;
+.camera-btn {
+  font-size:64px;
+  line-height:1;
+  cursor:pointer;
+  user-select:none;
 }
 
-.camera-btn {
-  font-size:48px;
+.photo-box img {
+  width:100%;
+  margin-top:12px;
+  border-radius:8px;
+  display:none;
+}
+
+/* VERBERG file input VOLLEDIG */
+.file-input {
+  display:none;
+}
+
+/* ===== KNOPPEN ===== */
+button {
+  width:100%;
+  padding:18px;
+  font-size:1.2rem;
+  border:none;
+  border-radius:12px;
   cursor:pointer;
 }
 
-.file-input { display:none; }
+.primary {
+  background:#2c7be5;
+  color:white;
+}
 
 .actions {
   display:grid;
   grid-template-columns:1fr 1fr 1fr;
-  gap:10px;
+  gap:12px;
 }
 
-@media(max-width:700px){
-  .grid { grid-template-columns:1fr; }
-  .actions { grid-template-columns:1fr; }
+/* ===== SMARTPHONE EXTRA GROOT ===== */
+@media (max-width:700px) {
+  html {
+    font-size:24px;
+  }
+
+  h1 {
+    font-size:1.8rem;
+  }
+
+  .grid {
+    grid-template-columns:1fr;
+  }
+
+  .actions {
+    grid-template-columns:1fr;
+  }
+
+  .camera-btn {
+    font-size:72px;
+  }
 }
 </style>
 </head>
@@ -130,7 +175,7 @@ let totalElements = 0;
 const maxElements = 30;
 
 document.getElementById("addElement").onclick = () => {
-  if(totalElements >= maxElements) return;
+  if (totalElements >= maxElements) return;
   totalElements++;
 
   const el = document.createElement("div");
@@ -139,7 +184,7 @@ document.getElementById("addElement").onclick = () => {
   el.innerHTML = `
     <div class="element-header">
       <strong class="label">Element</strong>
-      <button class="danger">✖</button>
+      <button class="remove-btn">✖</button>
     </div>
 
     <label>Type</label>
@@ -174,13 +219,13 @@ document.getElementById("addElement").onclick = () => {
   const type = el.querySelector(".type");
   const label = el.querySelector(".label");
   const details = el.querySelector(".details");
-  const remove = el.querySelector(".danger");
+  const remove = el.querySelector(".remove-btn");
   const cam = el.querySelector(".camera-btn");
   const file = el.querySelector(".file-input");
   const img = el.querySelector("img");
 
   type.onchange = () => {
-    if(!type.value) return;
+    if (!type.value) return;
     counters[type.value]++;
     label.textContent = `${type.value} ${counters[type.value]}`;
     details.style.display = "block";
@@ -190,84 +235,28 @@ document.getElementById("addElement").onclick = () => {
 
   file.onchange = () => {
     const f = file.files[0];
-    if(!f || f.size > 2*1024*1024) return alert("Foto max 2MB");
+    if (!f) return;
+
+    if (f.size > 2 * 1024 * 1024) {
+      alert("Foto max 2MB");
+      return;
+    }
+
     const r = new FileReader();
-    r.onload = e => { img.src = e.target.result; img.style.display="block"; };
+    r.onload = e => {
+      img.src = e.target.result;
+      img.style.display = "block";
+    };
     r.readAsDataURL(f);
   };
 
-  remove.onclick = () => { el.remove(); totalElements--; };
-};
-
-document.getElementById("saveProject").onclick = () => {
-  const data = {
-    klant: clientName.value,
-    datum: projectDate.value,
-    elementen:[]
+  remove.onclick = () => {
+    el.remove();
+    totalElements--;
   };
-
-  document.querySelectorAll(".element").forEach(el=>{
-    const type = el.querySelector(".label").textContent;
-    if(!type) return;
-    data.elementen.push({
-      type,
-      breedte: el.querySelectorAll("input[type=number]")[0].value,
-      hoogte: el.querySelectorAll("input[type=number]")[1].value,
-      foto: el.querySelector("img").src || ""
-    });
-  });
-
-  localStorage.setItem(data.klant, JSON.stringify(data));
-  alert("Project opgeslagen");
-};
-
-document.getElementById("loadProject").onclick = () => {
-  const name = prompt("Klantnaam?");
-  const data = JSON.parse(localStorage.getItem(name));
-  if(!data) return alert("Niet gevonden");
-
-  container.innerHTML="";
-  clientName.value=data.klant;
-  projectDate.value=data.datum;
-
-  data.elementen.forEach(e=>{
-    document.getElementById("addElement").click();
-    const el = container.lastChild;
-    el.querySelector(".label").textContent=e.type;
-    el.querySelectorAll("input[type=number]")[0].value=e.breedte;
-    el.querySelectorAll("input[type=number]")[1].value=e.hoogte;
-    if(e.foto){
-      el.querySelector("img").src=e.foto;
-      el.querySelector("img").style.display="block";
-    }
-    el.querySelector(".details").style.display="block";
-  });
-};
-
-document.getElementById("exportPDF").onclick = () => {
-  const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF();
-  let y=10;
-
-  pdf.setFontSize(16);
-  pdf.text("Opmeetrapport",10,y); y+=10;
-  pdf.setFontSize(12);
-  pdf.text(`Klant: ${clientName.value}`,10,y); y+=8;
-  pdf.text(`Datum: ${projectDate.value}`,10,y); y+=10;
-
-  document.querySelectorAll(".element").forEach(el=>{
-    const label = el.querySelector(".label").textContent;
-    const img = el.querySelector("img").src;
-    pdf.text(label,10,y); y+=6;
-    if(img){
-      pdf.addImage(img,"JPEG",10,y,40,30);
-      y+=35;
-    }
-  });
-
-  pdf.save("opmeting.pdf");
 };
 </script>
 
 </body>
 </html>
+
