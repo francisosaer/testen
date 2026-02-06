@@ -3,9 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>Opmeet Tool</title>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
 <style>
 html { font-size:28px; }
 body { font-family: Arial, sans-serif; background:#f4f6f8; max-width:1100px; margin:auto; padding:18px; }
@@ -13,10 +11,10 @@ h1 { text-align:center; font-size:2.4rem; margin-bottom:20px; }
 
 .card, .element { background:#fff; border-radius:12px; padding:18px; margin-bottom:20px; box-shadow:0 3px 8px rgba(0,0,0,.15); }
 label { display:block; font-weight:bold; margin-top:14px; font-size:1.4rem; }
-input, select { width:100%; padding:16px; font-size:1.4rem; margin-top:6px; }
+input { width:100%; padding:16px; font-size:1.4rem; margin-top:6px; }
 
 .element-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
-.remove-btn { background:#f44336; border:none; width:40px; height:40px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.remove-btn { background:none; border:none; width:40px; height:40px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
 
 .photo-box { border:3px dashed #bbb; border-radius:12px; padding:14px; text-align:center; margin-top:14px; }
 .camera-btn { font-size:80px; line-height:1; cursor:pointer; user-select:none; }
@@ -25,14 +23,16 @@ input, select { width:100%; padding:16px; font-size:1.4rem; margin-top:6px; }
 
 button { width:100%; padding:20px; font-size:1.6rem; border:none; border-radius:12px; cursor:pointer; }
 .primary { background:#2c7be5; color:#fff; }
-.actions { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; }
 
-#elementTypeDropdown { display:none; margin-top:10px; font-size:1.4rem; padding:14px; }
+.actions { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; margin-top:10px; }
+.add-options { display:flex; justify-content:space-around; margin-top:10px; gap:10px; }
+.add-options button { flex:1; font-size:1.6rem; }
 
 @media(max-width:700px){
   html { font-size:30px; }
   h1 { font-size:2.6rem; }
   .camera-btn { font-size:90px; }
+  .add-options button { font-size:1.8rem; padding:18px; }
 }
 </style>
 </head>
@@ -48,12 +48,11 @@ button { width:100%; padding:20px; font-size:1.6rem; border:none; border-radius:
 </div>
 
 <button id="addElementBtn" class="primary">+ Element toevoegen</button>
-<select id="elementTypeDropdown">
-  <option value="">-- Kies type --</option>
-  <option value="Raam">Raam</option>
-  <option value="Deur">Deur</option>
-  <option value="Poort">Poort</option>
-</select>
+<div class="add-options" id="elementOptions" style="display:none;">
+  <button data-type="Raam">Raam</button>
+  <button data-type="Deur">Deur</button>
+  <button data-type="Poort">Poort</button>
+</div>
 
 <div id="elements"></div>
 
@@ -70,40 +69,40 @@ let totalElements = 0;
 const maxElements = 30;
 
 const addBtn = document.getElementById("addElementBtn");
-const typeDropdown = document.getElementById("elementTypeDropdown");
+const elementOptions = document.getElementById("elementOptions");
 
 addBtn.onclick = () => {
-  typeDropdown.style.display = typeDropdown.style.display === "block" ? "none" : "block";
+  elementOptions.style.display = elementOptions.style.display === "flex" ? "none" : "flex";
 };
 
-typeDropdown.onchange = () => {
-  const selectedType = typeDropdown.value;
-  if(!selectedType) return;
-  typeDropdown.value = "";
-  typeDropdown.style.display = "none";
+elementOptions.querySelectorAll("button").forEach(btn => {
+  btn.onclick = () => {
+    const type = btn.dataset.type;
+    addElement(type);
+    elementOptions.style.display = "none";
+  }
+});
 
+function addElement(type) {
   if(totalElements >= maxElements) return;
   totalElements++;
-  counters[selectedType]++;
+  counters[type]++;
 
   const el = document.createElement("div");
   el.className = "element";
   el.innerHTML = `
     <div class="element-header">
-      <strong class="label">${selectedType} ${counters[selectedType]}</strong>
+      <strong class="label">${type} ${counters[type]}</strong>
       <button class="remove-btn">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="black" xmlns="http://www.w3.org/2000/svg">
           <path d="M3 6H5H21V8H19.0005L18.293 21.707C18.244 22.403 17.646 22.923 16.95 22.923H7.04998C6.354 22.923 5.756 22.403 5.707 21.707L5 8H3V6ZM9 10V19H11V10H9ZM13 10V19H15V10H13ZM8 4V2H16V4H21V6H3V4H8Z"/>
         </svg>
       </button>
     </div>
-
     <label>Breedte (cm)</label>
     <input type="number">
-
     <label>Hoogte (cm)</label>
     <input type="number">
-
     <div class="photo-box">
       <div class="camera-btn">📷</div>
       <input class="file-input" type="file" accept="image/*" capture="environment">
@@ -127,9 +126,9 @@ typeDropdown.onchange = () => {
     r.onload = e => { img.src=e.target.result; img.style.display="block"; };
     r.readAsDataURL(f);
   };
-};
+}
 
-/* OPSLAAN, LADEN, PDF */
+// Opslaan, laden, PDF
 document.getElementById("saveProject").onclick = () => {
   const data = { klant: clientName.value, datum: projectDate.value, elementen:[] };
   document.querySelectorAll(".element").forEach(el=>{
@@ -154,10 +153,7 @@ document.getElementById("loadProject").onclick = () => {
   projectDate.value=data.datum;
 
   data.elementen.forEach(e=>{
-    const event = new Event('change');
-    typeDropdown.style.display="block";
-    typeDropdown.value=e.type.split(' ')[0];
-    typeDropdown.dispatchEvent(event);
+    addElement(e.type.split(' ')[0]);
     const el = container.lastChild;
     el.querySelectorAll("input[type=number]")[0].value=e.breedte;
     el.querySelectorAll("input[type=number]")[1].value=e.hoogte;
@@ -180,7 +176,6 @@ document.getElementById("exportPDF").onclick = () => {
     const breedte = el.querySelectorAll("input[type=number]")[0].value;
     const hoogte = el.querySelectorAll("input[type=number]")[1].value;
     const img = el.querySelector("img").src;
-
     pdf.text(`${label} - ${breedte} x ${hoogte} cm`,10,y); y+=6;
     if(img) { pdf.addImage(img,"JPEG",10,y,40,30); y+=35; }
   });
