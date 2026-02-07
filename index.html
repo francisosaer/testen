@@ -14,20 +14,39 @@ label { font-weight:bold; display:block; margin-top:14px; }
 input, select { width:100%; font-size:1.6rem; padding:14px; margin-top:6px; }
 
 .element-header { display:flex; justify-content:space-between; align-items:center; }
-.remove-element { width:56px; height:56px; border:none; border-radius:50%; background:#f44336; display:flex; align-items:center; justify-content:center; }
-.remove-element svg { fill:white; width:28px; }
+.remove-element { width:40px; height:40px; background:red; color:white; font-weight:bold; font-size:22px; border:none; display:flex; align-items:center; justify-content:center; border-radius:4px; cursor:pointer; }
 
 .photo-box { margin-top:16px; padding:16px; border:3px dashed #bbb; border-radius:14px; text-align:center; }
 .camera-btn { font-size:90px; cursor:pointer; }
-.photo-wrapper { position:relative; margin-top:14px; }
-.photo-wrapper img { width:100%; border-radius:10px; }
-.remove-photo { position:absolute; top:8px; right:8px; background:rgba(244,67,54,.9); color:white; border:none; width:34px; height:34px; border-radius:50%; font-size:20px; }
 
-button { width:100%; padding:20px; font-size:1.8rem; border:none; border-radius:14px; margin-top:10px; }
+.photo-wrapper { position:relative; margin-top:14px; display:inline-block; }
+.photo-wrapper img { width:100%; border-radius:10px; display:block; }
+.remove-photo {
+  position:absolute;
+  top:4px;
+  right:4px;
+  width:32px;
+  height:32px;
+  background:red;
+  color:white;
+  font-weight:bold;
+  font-size:20px;
+  border:none;
+  border-radius:4px;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  cursor:pointer;
+  box-shadow:0 2px 4px rgba(0,0,0,0.3);
+  z-index:10;
+}
+
+button { width:100%; padding:20px; font-size:1.8rem; border:none; border-radius:14px; margin-top:10px; cursor:pointer; }
 .primary { background:#2c7be5; color:white; }
 .add-options { display:flex; gap:10px; }
 .add-options button { flex:1; }
 .actions { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+.new-project { background:green; color:white; font-weight:bold; font-size:24px; }
 
 @media(max-width:700px){
   html { font-size:32px; }
@@ -63,7 +82,7 @@ button { width:100%; padding:20px; font-size:1.8rem; border:none; border-radius:
 <div class="card actions">
   <button onclick="exportPDF()">📄 PDF</button>
   <button onclick="mailPDF()">📧 Mail PDF</button>
-  <button onclick="newProject()">🗑 Nieuw project</button>
+  <button class="new-project" onclick="newProject()">➕ Nieuw project</button>
 </div>
 
 <script>
@@ -88,11 +107,7 @@ function addElement(type){
   el.innerHTML=`
     <div class="element-header">
       <strong>${type} ${counters[type]}</strong>
-      <button class="remove-element">
-        <svg viewBox="0 0 24 24">
-          <path d="M3 6h18v2H5l1 14h12l1-14H3zm5 4h2v8H8zm6 0h2v8h-2z"/>
-        </svg>
-      </button>
+      <button class="remove-element">✖</button>
     </div>
     <label>Breedte (cm)</label><input type="number">
     <label>Hoogte (cm)</label><input type="number">
@@ -106,7 +121,9 @@ function addElement(type){
   el.scrollIntoView({behavior:"smooth"});
 
   el.querySelector(".remove-element").onclick=()=>{
-    el.remove(); autosave();
+    el.remove();
+    renumberElements();
+    autosave();
   };
 
   el.querySelectorAll("input[type=number]").forEach(i=> i.oninput=autosave);
@@ -138,18 +155,37 @@ function addElement(type){
   autosave();
 }
 
+// Automatische hernummering
+function renumberElements(){
+  const types = ["Raam","Deur","Poort"];
+  types.forEach(type=>{
+    let count = 0;
+    container.querySelectorAll(".element").forEach(el=>{
+      const strong = el.querySelector("strong");
+      if(strong.textContent.startsWith(type)){
+        count++;
+        strong.textContent = `${type} ${count}`;
+      }
+    });
+    counters[type] = count;
+  });
+}
+
+// Autosave + max 20 klanten
 function autosave(){
   const data={klant:clientName.value, datum:projectDate.value, elementen:[]};
-  document.querySelectorAll(".element").forEach(el=>{
+  container.querySelectorAll(".element").forEach(el=>{
     data.elementen.push({
       titel: el.querySelector("strong").innerText,
       b: el.querySelectorAll("input[type=number]")[0].value,
       h: el.querySelectorAll("input[type=number]")[1].value,
-      fotos: [...el.querySelectorAll("img")].map(i=>i.src)
+      fotos:[...el.querySelectorAll("img")].map(i=>i.src)
     });
   });
-  localStorage.setItem("autosave",JSON.stringify(data));
+
   if(clientName.value) localStorage.setItem(clientName.value, JSON.stringify(data));
+  localStorage.setItem("autosave", JSON.stringify(data));
+
   updateClientHistory();
 }
 
@@ -173,15 +209,25 @@ function restore(){
       p.appendChild(w);
     });
   });
+  renumberElements();
 }
 
+// Max 20 klanten
 function updateClientHistory(){
+  const keys = [];
+  for (let i=0;i<localStorage.length;i++){
+    const key = localStorage.key(i);
+    if(key === "autosave") continue;
+    keys.push(key);
+  }
+  keys.sort(); // oudste eerst
+  while(keys.length>20){
+    const oldest = keys.shift();
+    localStorage.removeItem(oldest);
+  }
   const sel = clientHistory;
   sel.innerHTML = '<option value="">-- Kies klant --</option>';
-  Object.keys(localStorage).forEach(k=>{
-    if(k === "autosave") return;
-    sel.innerHTML += `<option value="${k}">${k}</option>`;
-  });
+  keys.forEach(k=> sel.innerHTML += `<option value="${k}">${k}</option>`);
 }
 
 clientHistory.onchange = e=>{
@@ -206,6 +252,7 @@ clientHistory.onchange = e=>{
       p.appendChild(w);
     });
   });
+  renumberElements();
 }
 
 function newProject(){
@@ -224,7 +271,7 @@ function exportPDF(){
   pdf.setFontSize(12);
   pdf.text(`Klant: ${clientName.value}`,10,y); y+=8;
   pdf.text(`Datum: ${projectDate.value}`,10,y); y+=10;
-  document.querySelectorAll(".element").forEach(el=>{
+  container.querySelectorAll(".element").forEach(el=>{
     pdf.text(el.querySelector("strong").innerText,10,y); y+=6;
     [...el.querySelectorAll("img")].forEach(img=>{
       pdf.addImage(img.src,"JPEG",10,y,50,35); y+=40;
