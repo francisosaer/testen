@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <title>Opmeet Tool</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
 <style>
 html { font-size:32px; }
 body { font-family: Arial, sans-serif; background:#f4f6f8; max-width:1100px; margin:auto; padding:16px; }
@@ -28,7 +27,6 @@ button { width:100%; padding:20px; font-size:1.8rem; border:none; border-radius:
 .actions { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:14px; }
 </style>
 </head>
-
 <body>
 
 <div style="text-align:center; margin-bottom:10px;">
@@ -95,8 +93,11 @@ function addElement(type, preloadPhotos=[]){
   container.appendChild(el);
   el.scrollIntoView({behavior:"smooth", block:"start"});
 
-  el.querySelector(".remove-element").onclick=()=>{ el.remove(); renumberElements(); autosave(); };
-  el.querySelectorAll("input[type=number]").forEach(i=>i.oninput=autosave);
+  const removeEl=el.querySelector(".remove-element");
+  removeEl.onclick=()=>{ el.remove(); renumberElements(); autosave(); };
+
+  const inputs=el.querySelectorAll("input[type=number]");
+  inputs.forEach(i=>i.oninput=autosave);
 
   const cam=el.querySelector(".camera-btn");
   const file=el.querySelector("input[type=file]");
@@ -121,6 +122,7 @@ function addElement(type, preloadPhotos=[]){
     }; r.readAsDataURL(file.files[0]);
   };
 
+  // Preload foto's bij restore
   preloadPhotos.forEach(src=>{
     const wrap=document.createElement("div");
     wrap.className="photo-wrapper";
@@ -208,12 +210,12 @@ function exportPDF(){
     const pageHeight=297;
     let y=20;
 
-    // Logo aspect ratio behouden
-    const logoImg = new Image();
+    // Logo
+    const logoImg=new Image();
     logoImg.onload=function(){
-      const maxLogoWidth = 40;
-      const ratio = logoImg.height/logoImg.width;
-      const logoHeight = maxLogoWidth * ratio;
+      const maxLogoWidth=40;
+      const ratio=logoImg.height/logoImg.width;
+      const logoHeight=maxLogoWidth*ratio;
       pdf.addImage(logo,"PNG",margin,y-10,maxLogoWidth,logoHeight);
       pdf.setFontSize(18); pdf.text("Opmetingsrapport",margin+50,y); y+=12;
       pdf.setFontSize(12); pdf.text(`Klant: ${clientName.value}`,margin,y); y+=6;
@@ -229,9 +231,9 @@ function exportPDF(){
         el.querySelectorAll(".photo-wrapper img").forEach(imgEl=>{
           if(y>pageHeight-50){ pdf.addPage(); y=20; }
           const img=new Image(); img.src=imgEl.src;
-          const maxWidth=60, maxHeight=40;
+          const maxWidth=60,maxHeight=40;
           const ratio=img.height/img.width;
-          let w=maxWidth, h=w*ratio;
+          let w=maxWidth,h=w*ratio;
           if(h>maxHeight){ h=maxHeight; w=h/ratio; }
           pdf.addImage(img.src,"JPEG",margin,y,w,h);
           y+=h+5;
@@ -240,7 +242,7 @@ function exportPDF(){
       });
       pdf.save(`Opmeting - ${clientName.value}.pdf`);
     };
-    logoImg.src = logo;
+    logoImg.src=logo;
   });
 }
 
@@ -262,5 +264,3 @@ updateClientHistory();
 
 </body>
 </html>
-
-
