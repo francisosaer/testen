@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="nl">
 <head>
@@ -7,61 +8,30 @@
 
 <style>
 html { font-size:32px; }
-body {
-  font-family: Arial, sans-serif;
-  background:#f4f6f8;
-  max-width:1100px;
-  margin:auto;
-  padding:16px;
-}
-
+body { font-family: Arial, sans-serif; background:#f4f6f8; max-width:1100px; margin:auto; padding:16px; }
 h1 { text-align:center; font-size:2.4rem; margin-top:10px; }
-
-.card, .element {
-  background:#fff;
-  border-radius:14px;
-  padding:18px;
-  margin-bottom:20px;
-  box-shadow:0 3px 8px rgba(0,0,0,.15);
-}
-
+.card, .element { background:#fff; border-radius:14px; padding:18px; margin-bottom:20px; box-shadow:0 3px 8px rgba(0,0,0,.15); }
 label { font-weight:bold; display:block; margin-top:14px; }
-
 input, select { width:100%; font-size:1.6rem; padding:14px; margin-top:6px; }
-
 .element-header { display:flex; justify-content:space-between; align-items:center; }
-
-.remove-element {
-  width:40px; height:40px; background:red; color:white;
-  font-size:22px; border:none; border-radius:6px; cursor:pointer;
-}
-
+.remove-element { width:40px; height:40px; background:red; color:white; font-size:22px; border:none; border-radius:6px; cursor:pointer; }
 .photo-box { margin-top:16px; padding:16px; border:3px dashed #bbb; border-radius:14px; text-align:center; }
-
 .camera-btn { font-size:90px; cursor:pointer; }
-
 .photo-wrapper { position:relative; margin-top:14px; }
 .photo-wrapper img { width:100%; border-radius:10px; }
 .remove-photo { position:absolute; top:4px; right:4px; width:32px; height:32px; background:red; color:white; font-size:20px; border:none; border-radius:4px; cursor:pointer; }
-
-button {
-  width:100%; padding:20px; font-size:1.8rem; border:none; border-radius:14px; margin-top:10px; cursor:pointer;
-}
-
+button { width:100%; padding:20px; font-size:1.8rem; border:none; border-radius:14px; margin-top:10px; cursor:pointer; }
 .primary { background:#2c7be5; color:white; }
 .mail-btn { background:#6c757d; color:white; }
 .new-project { background:green; color:white; font-size:2rem; }
-
 .add-options { display:flex; gap:10px; }
 .add-options button { flex:1; }
-
 .actions { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:14px; }
 </style>
 </head>
 
 <body>
 
-<!-- LOGO -->
 <div style="text-align:center; margin-bottom:10px;">
   <img src="Logordb.png" alt="Logo" style="max-width:220px; width:60%; height:auto;">
 </div>
@@ -71,19 +41,14 @@ button {
 <div class="card">
   <label>Klantnaam</label>
   <input id="clientName">
-
   <label>Datum</label>
   <input type="date" id="projectDate">
-
   <label>Klantenhistoriek</label>
-  <select id="clientHistory">
-    <option value="">-- Kies klant --</option>
-  </select>
+  <select id="clientHistory"><option value="">-- Kies klant --</option></select>
 </div>
 
 <div id="elements"></div>
 
-<!-- ELEMENT TOEVOEGEN ONDERAAN -->
 <div id="bottomAdd" class="card">
   <button class="primary" onclick="toggleOptions()">+ Element toevoegen</button>
   <div class="add-options" id="optionsBottom" style="display:none">
@@ -93,7 +58,6 @@ button {
   </div>
 </div>
 
-<!-- ACTIES -->
 <div class="card">
   <div class="actions">
     <button class="primary" onclick="exportPDF()">💾 Opslaan</button>
@@ -103,137 +67,124 @@ button {
 </div>
 
 <script>
-const container = document.getElementById("elements");
-const counters = {Raam:0, Deur:0, Poort:0};
-const clientName = document.getElementById("clientName");
-const projectDate = document.getElementById("projectDate");
-const clientHistory = document.getElementById("clientHistory");
+const container=document.getElementById("elements");
+const counters={Raam:0,Deur:0,Poort:0};
+const clientName=document.getElementById("clientName");
+const projectDate=document.getElementById("projectDate");
+const clientHistory=document.getElementById("clientHistory");
 
-function toggleOptions(){
-  const o = document.getElementById("optionsBottom");
-  o.style.display = o.style.display === "flex" ? "none" : "flex";
-}
+function toggleOptions(){ const o=document.getElementById("optionsBottom"); o.style.display=o.style.display==="flex"?"none":"flex"; }
 
-function addElement(type){
+function addElement(type, preloadPhotos=[]){
   counters[type]++;
-  const el = document.createElement("div");
-  el.className = "element";
-
-  el.innerHTML = `
+  const el=document.createElement("div");
+  el.className="element";
+  el.innerHTML=`
     <div class="element-header">
       <strong>${type} ${counters[type]}</strong>
       <button class="remove-element">✖</button>
     </div>
-
     <label>Breedte (cm)</label>
     <input type="number">
-
     <label>Hoogte (cm)</label>
     <input type="number">
-
     <div class="photo-box">
       <div class="camera-btn">📷</div>
       <input type="file" accept="image/*" capture hidden>
       <div class="photos"></div>
-    </div>
-  `;
-
+    </div>`;
   container.appendChild(el);
 
-  // Scroll direct naar het nieuwe element
   el.scrollIntoView({behavior:"smooth", block:"start"});
 
-  el.querySelector(".remove-element").onclick = () => { el.remove(); renumberElements(); autosave(); };
-  el.querySelectorAll("input[type=number]").forEach(i => i.oninput = autosave);
+  el.querySelector(".remove-element").onclick=()=>{ el.remove(); renumberElements(); autosave(); };
+  el.querySelectorAll("input[type=number]").forEach(i=>i.oninput=autosave);
 
-  const cam = el.querySelector(".camera-btn");
-  const file = el.querySelector("input[type=file]");
-  const photos = el.querySelector(".photos");
-
-  cam.onclick = () => file.click();
-  file.onchange = () => {
-    const r = new FileReader();
-    r.onload = e => {
-      const img = new Image();
-      img.onload = () => {
-        const c = document.createElement("canvas");
-        const s = Math.min(800 / img.width, 1);
-        c.width = img.width * s;
-        c.height = img.height * s;
-        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-
-        const wrap = document.createElement("div");
-        wrap.className = "photo-wrapper";
-        wrap.innerHTML = `<img src="${c.toDataURL("image/jpeg",0.6)}"><button class="remove-photo">✖</button>`;
-        wrap.querySelector("button").onclick = () => { wrap.remove(); autosave(); };
+  const cam=el.querySelector(".camera-btn");
+  const file=el.querySelector("input[type=file]");
+  const photos=el.querySelector(".photos");
+  cam.onclick=()=>file.click();
+  file.onchange=()=>{
+    const r=new FileReader();
+    r.onload=e=>{
+      const img=new Image();
+      img.onload=()=>{
+        const c=document.createElement("canvas");
+        const s=Math.min(800/img.width,1);
+        c.width=img.width*s;
+        c.height=img.height*s;
+        c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+        const wrap=document.createElement("div");
+        wrap.className="photo-wrapper";
+        wrap.innerHTML=`<img src="${c.toDataURL("image/jpeg",0.6)}"><button class="remove-photo">✖</button>`;
+        wrap.querySelector("button").onclick=()=>{ wrap.remove(); autosave(); };
         photos.appendChild(wrap);
         autosave();
-      };
-      img.src = e.target.result;
-    };
-    r.readAsDataURL(file.files[0]);
+      }; img.src=e.target.result;
+    }; r.readAsDataURL(file.files[0]);
   };
+
+  // Voeg eventueel preload photos toe
+  preloadPhotos.forEach(src=>{
+    const wrap=document.createElement("div");
+    wrap.className="photo-wrapper";
+    wrap.innerHTML=`<img src="${src}"><button class="remove-photo">✖</button>`;
+    wrap.querySelector("button").onclick=()=>{ wrap.remove(); autosave(); };
+    photos.appendChild(wrap);
+  });
 
   autosave();
 }
 
 function renumberElements(){
   ["Raam","Deur","Poort"].forEach(type=>{
-    let i = 0;
+    let i=0;
     container.querySelectorAll(".element").forEach(el=>{
-      const s = el.querySelector("strong");
-      if(s.textContent.startsWith(type)){ i++; s.textContent = `${type} ${i}`; }
+      const s=el.querySelector("strong");
+      if(s.textContent.startsWith(type)){ i++; s.textContent=`${type} ${i}`; }
     });
-    counters[type] = i;
+    counters[type]=i;
   });
 }
 
 function autosave(){
-  const data = { klant:clientName.value, datum:projectDate.value, elementen:[] };
+  const data={klant:clientName.value,datum:projectDate.value,elementen:[]};
   container.querySelectorAll(".element").forEach(el=>{
     data.elementen.push({
-      titel: el.querySelector("strong").innerText,
-      b: el.querySelectorAll("input")[0].value,
-      h: el.querySelectorAll("input")[1].value,
-      fotos: [...el.querySelectorAll("img")].map(i=>i.src)
+      titel:el.querySelector("strong").innerText,
+      b:el.querySelectorAll("input")[0].value,
+      h:el.querySelectorAll("input")[1].value,
+      fotos:[...el.querySelectorAll(".photo-wrapper img")].map(i=>i.src)
     });
   });
-  if(clientName.value) localStorage.setItem(clientName.value, JSON.stringify(data));
-  localStorage.setItem("autosave", JSON.stringify(data));
+  if(clientName.value) localStorage.setItem(clientName.value,JSON.stringify(data));
+  localStorage.setItem("autosave",JSON.stringify(data));
   updateClientHistory();
 }
 
 function updateClientHistory(){
   const keys=[];
   for(let i=0;i<localStorage.length;i++){
-    const k = localStorage.key(i);
+    const k=localStorage.key(i);
     if(k!=="autosave") keys.push(k);
   }
   keys.sort();
   while(keys.length>20) localStorage.removeItem(keys.shift());
   clientHistory.innerHTML='<option value="">-- Kies klant --</option>';
-  keys.forEach(k=> clientHistory.innerHTML+=`<option>${k}</option>`);
+  keys.forEach(k=>clientHistory.innerHTML+=`<option>${k}</option>`);
 }
 
-clientHistory.onchange = ()=>{
-  const d = JSON.parse(localStorage.getItem(clientHistory.value));
+clientHistory.onchange=()=>{
+  const d=JSON.parse(localStorage.getItem(clientHistory.value));
   if(!d) return;
   container.innerHTML="";
   clientName.value=d.klant;
   projectDate.value=d.datum;
   d.elementen.forEach(e=>{
-    addElement(e.titel.split(" ")[0]);
-    const el = container.lastChild;
+    addElement(e.titel.split(" ")[0], e.fotos);
+    const el=container.lastChild;
     el.querySelectorAll("input")[0].value=e.b;
     el.querySelectorAll("input")[1].value=e.h;
-    const p = el.querySelector(".photos");
-    e.fotos.forEach(src=>{
-      const w=document.createElement("div");
-      w.className="photo-wrapper";
-      w.innerHTML=`<img src="${src}"><button class="remove-photo">✖</button>`;
-      w.querySelector("button").onclick=()=>{w.remove();autosave();}
-      p.appendChild(w);
-    });
   });
   renumberElements();
 }
@@ -242,79 +193,52 @@ function newProject(){ if(confirm("Nieuw project starten?")){ localStorage.remov
 
 function openMail(){
   if(!clientName.value){ alert("Vul eerst een klantnaam in."); return; }
-  const subject = encodeURIComponent(`Opmeting - ${clientName.value}`);
-  const body = encodeURIComponent(
-`Beste,
-
-In bijlage vindt u de opmeting voor ${clientName.value}.
-
-Met vriendelijke groeten`
-  );
-  window.location.href = `mailto:?subject=${subject}&body=${body}`;
+  const subject=encodeURIComponent(`Opmeting - ${clientName.value}`);
+  const body=encodeURIComponent(`Beste,\n\nIn bijlage vindt u de opmeting voor ${clientName.value}.\n\nMet vriendelijke groeten`);
+  window.location.href=`mailto:?subject=${subject}&body=${body}`;
 }
 
 function loadLogoBase64(callback){
-  const img = new Image();
-  img.onload = function(){ const c=document.createElement("canvas"); c.width=img.width; c.height=img.height; c.getContext("2d").drawImage(img,0,0); callback(c.toDataURL("image/png")); };
-  img.src = "Logordb.png";
+  const img=new Image();
+  img.onload=function(){ const c=document.createElement("canvas"); c.width=img.width; c.height=img.height; c.getContext("2d").drawImage(img,0,0); callback(c.toDataURL("image/png")); };
+  img.src="Logordb.png";
 }
 
 function exportPDF(){
   loadLogoBase64(function(logo){
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF("p","mm","a4");
+    const { jsPDF }=window.jspdf;
+    const pdf=new jsPDF("p","mm","a4");
     const margin=15; const pageHeight=297; let y=20;
-
     pdf.addImage(logo,"PNG",margin,y-10,40,20);
-    pdf.setFontSize(18);
-    pdf.text("Opmetingsrapport",margin+50,y);
-    y+=12;
-
-    pdf.setFontSize(12);
-    pdf.text(`Klant: ${clientName.value}`,margin,y); y+=6;
+    pdf.setFontSize(18); pdf.text("Opmetingsrapport",margin+50,y); y+=12;
+    pdf.setFontSize(12); pdf.text(`Klant: ${clientName.value}`,margin,y); y+=6;
     pdf.text(`Datum: ${projectDate.value}`,margin,y); y+=10;
-
     container.querySelectorAll(".element").forEach(el=>{
       if(y>pageHeight-45){ pdf.addPage(); y=20; }
-      pdf.setFontSize(14);
-      pdf.text(el.querySelector("strong").innerText,margin,y); y+=6;
-      pdf.setFontSize(12);
-      const i=el.querySelectorAll("input");
+      pdf.setFontSize(14); pdf.text(el.querySelector("strong").innerText,margin,y); y+=6;
+      pdf.setFontSize(12); const i=el.querySelectorAll("input");
       pdf.text(`Breedte: ${i[0].value} cm`,margin,y); y+=5;
       pdf.text(`Hoogte: ${i[1].value} cm`,margin,y); y+=6;
-      el.querySelectorAll("img").forEach(img=>{
+      el.querySelectorAll(".photo-wrapper img").forEach(img=>{
         if(y>pageHeight-50){ pdf.addPage(); y=20; }
-        pdf.addImage(img.src,"JPEG",margin,y,60,40);
-        y+=45;
+        pdf.addImage(img.src,"JPEG",margin,y,60,40); y+=45;
       });
       y+=4;
     });
-
     pdf.save(`Opmeting - ${clientName.value}.pdf`);
   });
 }
 
 /* HERSTEL BIJ REFRESH */
 (function(){
-  const s = localStorage.getItem("autosave");
-  if(!s) return;
-  const d = JSON.parse(s);
-  clientName.value=d.klant;
-  projectDate.value=d.datum;
-  container.innerHTML="";
+  const s=localStorage.getItem("autosave"); if(!s) return;
+  const d=JSON.parse(s);
+  clientName.value=d.klant; projectDate.value=d.datum; container.innerHTML="";
   d.elementen.forEach(e=>{
-    addElement(e.titel.split(" ")[0]);
-    const el = container.lastChild;
+    addElement(e.titel.split(" ")[0], e.fotos);
+    const el=container.lastChild;
     el.querySelectorAll("input")[0].value=e.b;
     el.querySelectorAll("input")[1].value=e.h;
-    const p = el.querySelector(".photos");
-    e.fotos.forEach(src=>{
-      const w=document.createElement("div");
-      w.className="photo-wrapper";
-      w.innerHTML=`<img src="${src}"><button class="remove-photo">✖</button>`;
-      w.querySelector("button").onclick=()=>{ w.remove(); autosave(); }
-      p.appendChild(w);
-    });
   });
   renumberElements();
 })();
@@ -323,3 +247,4 @@ updateClientHistory();
 
 </body>
 </html>
+
