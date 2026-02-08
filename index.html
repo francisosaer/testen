@@ -2,7 +2,15 @@
 <html lang="nl">
 <head>
 <meta charset="UTF-8">
+
 <title>Opmeet Tool</title>
+
+<!-- ✅ PWA essentials -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2c7be5">
+
+<!-- PDF -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
@@ -26,6 +34,7 @@ h1 { text-align:center; font-size:2.4rem; }
 }
 
 label { font-weight:bold; margin-top:14px; display:block; }
+
 input {
   width:100%;
   padding:18px;
@@ -61,8 +70,7 @@ button {
 .remove-btn {
   background:none;
   border:none;
-  width:48px;
-  height:48px;
+  font-size:1.8rem;
   cursor:pointer;
 }
 
@@ -144,7 +152,7 @@ typeOptions.querySelectorAll("button").forEach(btn=>{
     addElement(btn.dataset.type);
     typeOptions.style.display = "none";
     save();
-  }
+  };
 });
 
 function addElement(type, data=null) {
@@ -254,6 +262,11 @@ window.onload = () => {
     addElement(e.type.split(" ")[0], e);
   });
 };
+
+/* ✅ Service Worker registreren (PWA) */
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("service-worker.js");
+}
 </script>
 
 </body>
