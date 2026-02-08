@@ -61,6 +61,7 @@ const clientName = document.getElementById("clientName");
 const projectDate = document.getElementById("projectDate");
 
 let counters = {Raam:0, Deur:0, Poort:0};
+let isDirty = false;
 
 addBtn.onclick = ()=>typeOptions.style.display = typeOptions.style.display==="flex"?"none":"flex";
 
@@ -96,7 +97,9 @@ function addElement(type, data=null){
   container.appendChild(el);
 
   el.querySelector(".remove-btn").onclick=()=>{el.remove(); save();};
-  el.querySelectorAll("input").forEach(i=>i.oninput=save);
+  el.querySelectorAll("input").forEach(i=>{
+    i.oninput=()=>{save(); isDirty=true;};
+  });
 
   const cam = el.querySelector(".camera-btn");
   const fileInput = el.querySelector("input[type=file]");
@@ -109,22 +112,20 @@ function addElement(type, data=null){
 
     const reader=new FileReader();
     reader.onload=e=>{
-      // compress image
-      const img = new Image();
+      const img=new Image();
       img.onload=()=>{
         const canvas=document.createElement("canvas");
-        const MAX_WIDTH = 800;
-        const scale = Math.min(1, MAX_WIDTH/img.width);
+        const MAX_WIDTH=800;
+        const scale=Math.min(1, MAX_WIDTH/img.width);
         canvas.width = img.width*scale;
         canvas.height = img.height*scale;
-        const ctx=canvas.getContext("2d");
-        ctx.drawImage(img,0,0,canvas.width,canvas.height);
-        let compressed = canvas.toDataURL("image/jpeg",0.6); // 60% kwaliteit
+        canvas.getContext("2d").drawImage(img,0,0,canvas.width,canvas.height);
+        let compressed = canvas.toDataURL("image/jpeg",0.6);
 
-        const wrap = document.createElement("div");
+        const wrap=document.createElement("div");
         wrap.className="photo-wrapper";
 
-        const imgEl = document.createElement("img");
+        const imgEl=document.createElement("img");
         imgEl.src=compressed;
 
         const del=document.createElement("button");
@@ -143,7 +144,7 @@ function addElement(type, data=null){
 
   if(data?.fotos){
     data.fotos.forEach(src=>{
-      const wrap = document.createElement("div");
+      const wrap=document.createElement("div");
       wrap.className="photo-wrapper";
       wrap.innerHTML=`<img src="${src}"><button class="remove-photo">✖</button>`;
       wrap.querySelector("button").onclick=()=>{wrap.remove(); save();};
@@ -174,10 +175,18 @@ window.onload=()=>{
   data.elementen.forEach(e=>addElement(e.type.split(" ")[0],e));
 };
 
+// ----------------- Waarschuwing bij refresh -----------------
+window.addEventListener("beforeunload", function (e) {
+  if(!isDirty) return undefined;
+  const confirmationMessage="Weet je zeker dat je de pagina wilt vernieuwen? Alle niet-opgeslagen gegevens kunnen verloren gaan.";
+  (e || window.event).returnValue = confirmationMessage;
+  return confirmationMessage;
+});
+
 // PDF export
 document.getElementById("exportPDF").onclick=()=>{
   const { jsPDF }=window.jspdf;
-  const doc = new jsPDF();
+  const doc=new jsPDF();
   const saved=localStorage.getItem("opmeetProject"); if(!saved) return;
   const data=JSON.parse(saved);
 
@@ -186,7 +195,7 @@ document.getElementById("exportPDF").onclick=()=>{
   doc.text(`Klant: ${data.klant}`,10,y); y+=10;
   doc.text(`Datum: ${data.datum}`,10,y); y+=10;
 
-  data.elementen.forEach((el,i)=>{
+  data.elementen.forEach(el=>{
     doc.text(`${el.type}`,10,y); y+=10;
     doc.text(`Breedte: ${el.breedte} cm`,10,y); y+=10;
     doc.text(`Hoogte: ${el.hoogte} cm`,10,y); y+=10;
@@ -194,7 +203,7 @@ document.getElementById("exportPDF").onclick=()=>{
   doc.save(`opmeting_${data.klant||'project'}.pdf`);
 };
 
-// Service worker
+// PWA service worker
 if("serviceWorker" in navigator){
   navigator.serviceWorker.register("service-worker.js");
 }
@@ -202,6 +211,4 @@ if("serviceWorker" in navigator){
 
 </body>
 </html>
-
-
 
