@@ -1,33 +1,222 @@
-const cam = el.querySelector(".camera-btn");
-const fileInput = el.querySelector(".file-input");
-const photoContainer = el.querySelector(".photo-container");
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<title>Opmeet Tool</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+html { font-size:28px; }
+body { font-family: Arial, sans-serif; background:#f4f6f8; max-width:1100px; margin:auto; padding:18px; }
+h1 { text-align:center; font-size:2.4rem; margin-bottom:20px; }
 
-cam.onclick = () => fileInput.click();
+.card, .element { background:#fff; border-radius:12px; padding:18px; margin-bottom:20px; box-shadow:0 3px 8px rgba(0,0,0,.15); }
+label { display:block; font-weight:bold; margin-top:14px; font-size:1.4rem; }
+input { width:100%; padding:16px; font-size:1.4rem; margin-top:6px; }
 
-fileInput.onchange = () => {
-  const f = fileInput.files[0];
-  if(!f) return;
+.element-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+.remove-btn { background:none; border:none; width:50px; height:50px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
 
-  const reader = new FileReader();
-  reader.onload = e => {
-    const imgObj = new Image();
-    imgObj.onload = () => {
-      const canvas = document.createElement("canvas");
-      const maxWidth = 800;
-      let scale = Math.min(1, maxWidth / imgObj.width);
-      canvas.width = imgObj.width * scale;
-      canvas.height = imgObj.height * scale;
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(imgObj,0,0,canvas.width,canvas.height);
+.photo-box { border:3px dashed #bbb; border-radius:12px; padding:14px; text-align:center; margin-top:14px; }
+.camera-btn { font-size:80px; line-height:1; cursor:pointer; user-select:none; }
+.photo-container { position: relative; }
+.photo-container img { width:100%; border-radius:8px; display:block; margin-top:10px; }
+.photo-container .remove-photo {
+  position: absolute;
+  top:8px;
+  right:8px;
+  background: rgba(244,67,54,0.9);
+  color:white;
+  border:none;
+  border-radius:50%;
+  width:28px;
+  height:28px;
+  font-size:18px;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
 
-      const imgData = canvas.toDataURL("image/jpeg",0.6);
+button { width:100%; padding:20px; font-size:1.6rem; border:none; border-radius:12px; cursor:pointer; }
+.primary { background:#2c7be5; color:#fff; }
 
+.actions { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; margin-top:10px; }
+.add-options { display:flex; justify-content:space-around; margin-top:10px; gap:10px; }
+.add-options button { flex:1; font-size:1.6rem; }
+
+@media(max-width:700px){
+  html { font-size:30px; }
+  h1 { font-size:2.6rem; }
+  .camera-btn { font-size:90px; }
+  .add-options button { font-size:1.8rem; padding:18px; }
+}
+</style>
+</head>
+<body>
+
+<h1>Opmeet Tool</h1>
+
+<div class="card">
+  <label>Klantnaam</label>
+  <input id="clientName">
+  <label>Projectdatum</label>
+  <input type="date" id="projectDate">
+</div>
+
+<button id="addElementBtn" class="primary">+ Element toevoegen</button>
+<div class="add-options" id="elementOptions" style="display:none;">
+  <button data-type="Raam">Raam</button>
+  <button data-type="Deur">Deur</button>
+  <button data-type="Poort">Poort</button>
+</div>
+
+<div id="elements"></div>
+
+<div class="card actions">
+  <button id="saveProject" class="primary">💾 Opslaan</button>
+  <button id="loadProject">📂 Laden</button>
+  <button id="exportPDF">📄 PDF</button>
+</div>
+
+<script>
+const container = document.getElementById("elements");
+const counters = { Raam:0, Deur:0, Poort:0 };
+let totalElements = 0;
+const maxElements = 30;
+
+const addBtn = document.getElementById("addElementBtn");
+const elementOptions = document.getElementById("elementOptions");
+
+addBtn.onclick = () => {
+  elementOptions.style.display = elementOptions.style.display === "flex" ? "none" : "flex";
+};
+
+elementOptions.querySelectorAll("button").forEach(btn => {
+  btn.onclick = () => {
+    const type = btn.dataset.type;
+    addElement(type);
+    elementOptions.style.display = "none";
+  }
+});
+
+function addElement(type) {
+  if(totalElements >= maxElements) return;
+  totalElements++;
+  counters[type]++;
+
+  const el = document.createElement("div");
+  el.className = "element";
+  el.innerHTML = `
+    <div class="element-header">
+      <strong class="label">${type} ${counters[type]}</strong>
+      <button class="remove-btn">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 6H5H21V8H19.0005L18.293 21.707C18.244 22.403 17.646 22.923 16.95 22.923H7.04998C6.354 22.923 5.756 22.403 5.707 21.707L5 8H3V6ZM9 10V19H11V10H9ZM13 10V19H15V10H13ZM8 4V2H16V4H21V6H3V4H8Z"/>
+        </svg>
+      </button>
+    </div>
+    <label>Breedte (cm)</label>
+    <input type="number">
+    <label>Hoogte (cm)</label>
+    <input type="number">
+    <div class="photo-box">
+      <div class="camera-btn">📷</div>
+      <input class="file-input" type="file" accept="image/*" capture="environment">
+      <div class="photo-container"></div>
+    </div>
+  `;
+  container.appendChild(el);
+
+  // Element verwijderen
+  el.querySelector(".remove-btn").onclick = (event) => {
+    event.currentTarget.closest(".element").remove();
+    totalElements--;
+  };
+
+  // Foto toevoegen en compressie, meerdere foto’s
+  const cam = el.querySelector(".camera-btn");
+  const fileInput = el.querySelector(".file-input");
+  const photoContainer = el.querySelector(".photo-container");
+
+  cam.onclick = () => fileInput.click();
+
+  fileInput.onchange = () => {
+    const f = fileInput.files[0];
+    if(!f) return;
+
+    const reader = new FileReader();
+    reader.onload = e => {
+      const imgObj = new Image();
+      imgObj.onload = () => {
+        const canvas = document.createElement("canvas");
+        const maxWidth = 800;
+        let scale = Math.min(1, maxWidth / imgObj.width);
+        canvas.width = imgObj.width * scale;
+        canvas.height = imgObj.height * scale;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(imgObj,0,0,canvas.width,canvas.height);
+
+        const imgData = canvas.toDataURL("image/jpeg",0.6);
+
+        const photoWrapper = document.createElement("div");
+        photoWrapper.style.position = "relative";
+        photoWrapper.style.marginTop = "10px";
+
+        const imgEl = document.createElement("img");
+        imgEl.src = imgData;
+
+        const removeBtn = document.createElement("button");
+        removeBtn.textContent = "✖";
+        removeBtn.className = "remove-photo";
+        removeBtn.onclick = () => photoWrapper.remove();
+
+        photoWrapper.appendChild(imgEl);
+        photoWrapper.appendChild(removeBtn);
+        photoContainer.appendChild(photoWrapper);
+      }
+      imgObj.src = e.target.result;
+    }
+    reader.readAsDataURL(f);
+  }
+}
+
+// Opslaan, laden, PDF
+document.getElementById("saveProject").onclick = () => {
+  const data = { klant: clientName.value, datum: projectDate.value, elementen:[] };
+  document.querySelectorAll(".element").forEach(el=>{
+    const label = el.querySelector(".label").textContent;
+    const breedte = el.querySelectorAll("input[type=number]")[0].value;
+    const hoogte = el.querySelectorAll("input[type=number]")[1].value;
+    const fotos = Array.from(el.querySelectorAll(".photo-container img")).map(img=>img.src);
+    data.elementen.push({ type: label, breedte, hoogte, fotos });
+  });
+  localStorage.setItem(data.klant, JSON.stringify(data));
+  alert("Project opgeslagen");
+};
+
+document.getElementById("loadProject").onclick = () => {
+  const name = prompt("Klantnaam?");
+  const data = JSON.parse(localStorage.getItem(name));
+  if(!data) return alert("Niet gevonden");
+  container.innerHTML="";
+  clientName.value=data.klant;
+  projectDate.value=data.datum;
+
+  data.elementen.forEach(e=>{
+    addElement(e.type.split(' ')[0]);
+    const el = container.lastChild;
+    el.querySelectorAll("input[type=number]")[0].value=e.breedte;
+    el.querySelectorAll("input[type=number]")[1].value=e.hoogte;
+    const photoContainer = el.querySelector(".photo-container");
+    e.fotos.forEach(src=>{
       const photoWrapper = document.createElement("div");
       photoWrapper.style.position = "relative";
       photoWrapper.style.marginTop = "10px";
 
       const imgEl = document.createElement("img");
-      imgEl.src = imgData;
+      imgEl.src = src;
+      imgEl.style.width = "100%";
+      imgEl.style.borderRadius = "8px";
 
       const removeBtn = document.createElement("button");
       removeBtn.textContent = "✖";
@@ -37,9 +226,35 @@ fileInput.onchange = () => {
       photoWrapper.appendChild(imgEl);
       photoWrapper.appendChild(removeBtn);
       photoContainer.appendChild(photoWrapper);
-    }
-    imgObj.src = e.target.result;
-  }
-  reader.readAsDataURL(f);
+    });
+  });
 };
+
+document.getElementById("exportPDF").onclick = () => {
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF();
+  let y=10;
+  pdf.setFontSize(16);
+  pdf.text("Opmeetrapport",10,y); y+=10;
+  pdf.setFontSize(12);
+  pdf.text(`Klant: ${clientName.value}`,10,y); y+=8;
+  pdf.text(`Datum: ${projectDate.value}`,10,y); y+=10;
+
+  document.querySelectorAll(".element").forEach(el=>{
+    const label = el.querySelector(".label").textContent;
+    const breedte = el.querySelectorAll("input[type=number]")[0].value;
+    const hoogte = el.querySelectorAll("input[type=number]")[1].value;
+    const imgs = el.querySelectorAll(".photo-container img");
+    pdf.text(`${label} - ${breedte} x ${hoogte} cm`,10,y); y+=6;
+    imgs.forEach(img=>{
+      pdf.addImage(img.src,"JPEG",10,y,40,30);
+      y+=35;
+    });
+  });
+  pdf.save("opmeting.pdf");
+};
+</script>
+
+</body>
+</html>
 
