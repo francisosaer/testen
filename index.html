@@ -2,10 +2,9 @@
 <html lang="nl">
 <head>
 <meta charset="UTF-8">
-
 <title>Opmeet Tool</title>
 
-<!-- ✅ PWA essentials -->
+<!-- PWA -->
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#2c7be5">
@@ -15,103 +14,24 @@
 
 <style>
 html { font-size:32px; }
-body {
-  font-family: Arial, sans-serif;
-  background:#f4f6f8;
-  max-width:1100px;
-  margin:auto;
-  padding:16px;
-}
-
+body { font-family: Arial,sans-serif; background:#f4f6f8; max-width:1100px; margin:auto; padding:16px; }
 h1 { text-align:center; font-size:2.4rem; }
-
-.card, .element {
-  background:#fff;
-  border-radius:14px;
-  padding:18px;
-  margin-bottom:20px;
-  box-shadow:0 4px 10px rgba(0,0,0,.15);
-}
-
+.card, .element { background:#fff; border-radius:14px; padding:18px; margin-bottom:20px; box-shadow:0 4px 10px rgba(0,0,0,.15); }
 label { font-weight:bold; margin-top:14px; display:block; }
-
-input {
-  width:100%;
-  padding:18px;
-  font-size:1.4rem;
-  margin-top:6px;
-}
-
-button {
-  width:100%;
-  padding:18px;
-  font-size:1.6rem;
-  border:none;
-  border-radius:14px;
-  cursor:pointer;
-}
-
+input { width:100%; padding:18px; font-size:1.4rem; margin-top:6px; }
+button { width:100%; padding:18px; font-size:1.6rem; border:none; border-radius:14px; cursor:pointer; }
 .primary { background:#2c7be5; color:white; }
-
-.add-options {
-  display:none;
-  gap:10px;
-  margin-top:10px;
-}
-
+.add-options { display:none; gap:10px; margin-top:10px; }
 .add-options button { flex:1; }
-
-.element-header {
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-}
-
-.remove-btn {
-  background:none;
-  border:none;
-  font-size:1.8rem;
-  cursor:pointer;
-}
-
-.photo-box {
-  border:3px dashed #bbb;
-  border-radius:14px;
-  padding:16px;
-  text-align:center;
-  margin-top:14px;
-}
-
-.camera-btn {
-  font-size:90px;
-  cursor:pointer;
-}
-
-.photo-wrapper {
-  position:relative;
-  margin-top:12px;
-}
-
-.photo-wrapper img {
-  width:100%;
-  border-radius:10px;
-}
-
-.remove-photo {
-  position:absolute;
-  top:8px;
-  right:8px;
-  background:rgba(220,0,0,.9);
-  color:white;
-  border:none;
-  border-radius:50%;
-  width:34px;
-  height:34px;
-  font-size:18px;
-}
+.element-header { display:flex; justify-content:space-between; align-items:center; }
+.remove-btn { background:none; border:none; font-size:1.8rem; cursor:pointer; }
+.photo-box { border:3px dashed #bbb; border-radius:14px; padding:16px; text-align:center; margin-top:14px; }
+.camera-btn { font-size:90px; cursor:pointer; }
+.photo-wrapper { position:relative; margin-top:12px; }
+.photo-wrapper img { width:100%; border-radius:10px; }
+.remove-photo { position:absolute; top:8px; right:8px; background:rgba(220,0,0,.9); color:white; border:none; border-radius:50%; width:34px; height:34px; font-size:18px; }
 </style>
 </head>
-
 <body>
 
 <h1>Opmeet Tool</h1>
@@ -136,21 +56,35 @@ button {
 <button id="exportPDF" class="primary">📄 PDF maken</button>
 
 <script>
+// ------------------------- IndexedDB Setup -------------------------
+let db;
+const request = indexedDB.open("OpmeetDB", 1);
+request.onerror = e => console.error("DB fout", e);
+request.onsuccess = e => { db = e.target.result; loadElements(); };
+request.onupgradeneeded = e => {
+  db = e.target.result;
+  if (!db.objectStoreNames.contains("fotos")) {
+    db.createObjectStore("fotos", { keyPath: "id" });
+  }
+};
+
+// ------------------------- App Logic -------------------------
 const container = document.getElementById("elements");
 const addBtn = document.getElementById("addBtn");
 const typeOptions = document.getElementById("typeOptions");
+const clientName = document.getElementById("clientName");
+const projectDate = document.getElementById("projectDate");
 
 let counters = {Raam:0, Deur:0, Poort:0};
 
 addBtn.onclick = () => {
-  typeOptions.style.display =
-    typeOptions.style.display === "flex" ? "none" : "flex";
+  typeOptions.style.display = typeOptions.style.display==="flex" ? "none" : "flex";
 };
 
 typeOptions.querySelectorAll("button").forEach(btn=>{
   btn.onclick = () => {
     addElement(btn.dataset.type);
-    typeOptions.style.display = "none";
+    typeOptions.style.display="none";
     save();
   };
 });
@@ -166,13 +100,10 @@ function addElement(type, data=null) {
       <strong>${type} ${counters[type]}</strong>
       <button class="remove-btn">🗑️</button>
     </div>
-
     <label>Breedte (cm)</label>
-    <input type="number" value="${data?.breedte||""}">
-
+    <input type="number" value="${data?.breedte||''}">
     <label>Hoogte (cm)</label>
-    <input type="number" value="${data?.hoogte||""}">
-
+    <input type="number" value="${data?.hoogte||''}">
     <div class="photo-box">
       <div class="camera-btn">📷</div>
       <input type="file" accept="image/*" capture="environment" hidden>
@@ -182,25 +113,22 @@ function addElement(type, data=null) {
 
   container.appendChild(el);
 
-  el.querySelector(".remove-btn").onclick = () => {
-    el.remove();
-    save();
-  };
-
+  el.querySelector(".remove-btn").onclick = () => { el.remove(); save(); };
   el.querySelectorAll("input").forEach(i=>i.oninput=save);
 
   const cam = el.querySelector(".camera-btn");
   const fileInput = el.querySelector("input[type=file]");
   const photos = el.querySelector(".photos");
 
-  cam.onclick = () => fileInput.click();
+  cam.onclick = ()=>fileInput.click();
 
-  fileInput.onchange = () => {
+  fileInput.onchange = ()=> {
     const f = fileInput.files[0];
     if(!f) return;
 
-    const r = new FileReader();
-    r.onload = e => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const id = Date.now() + Math.random();
       const wrap = document.createElement("div");
       wrap.className="photo-wrapper";
 
@@ -210,47 +138,63 @@ function addElement(type, data=null) {
       const del = document.createElement("button");
       del.className="remove-photo";
       del.textContent="✖";
-      del.onclick=()=>{wrap.remove(); save();};
+      del.onclick = () => {
+        wrap.remove();
+        deleteFoto(id);
+        save();
+      };
 
       wrap.appendChild(img);
       wrap.appendChild(del);
       photos.appendChild(wrap);
+
+      // Opslaan in IndexedDB
+      const tx = db.transaction(["fotos"], "readwrite");
+      tx.objectStore("fotos").put({id, src:e.target.result});
       save();
     };
-    r.readAsDataURL(f);
+    reader.readAsDataURL(f);
   };
 
   if(data?.fotos){
     data.fotos.forEach(src=>{
-      const wrap=document.createElement("div");
+      const wrap = document.createElement("div");
       wrap.className="photo-wrapper";
       wrap.innerHTML=`<img src="${src}"><button class="remove-photo">✖</button>`;
-      wrap.querySelector("button").onclick=()=>{wrap.remove(); save();};
+      wrap.querySelector("button").onclick=()=>{wrap.remove(); deleteFotoBySrc(src); save();};
       photos.appendChild(wrap);
     });
   }
 }
 
-function save(){
-  const data={
-    klant: clientName.value,
-    datum: projectDate.value,
-    elementen:[]
-  };
+function deleteFoto(id){
+  const tx = db.transaction(["fotos"], "readwrite");
+  tx.objectStore("fotos").delete(id);
+}
 
+function deleteFotoBySrc(src){
+  const tx = db.transaction(["fotos"], "readwrite");
+  const store = tx.objectStore("fotos");
+  const getAll = store.getAll();
+  getAll.onsuccess = () => {
+    getAll.result.forEach(item=>{if(item.src===src) store.delete(item.id);});
+  };
+}
+
+function save(){
+  const data = {klant: clientName.value, datum: projectDate.value, elementen:[]};
   document.querySelectorAll(".element").forEach(el=>{
     data.elementen.push({
       type: el.querySelector("strong").textContent,
       breedte: el.querySelectorAll("input")[0].value,
       hoogte: el.querySelectorAll("input")[1].value,
-      fotos: [...el.querySelectorAll("img")].map(i=>i.src)
+      fotos:[...el.querySelectorAll("img")].map(i=>i.src)
     });
   });
-
   localStorage.setItem("opmeetProject", JSON.stringify(data));
 }
 
-window.onload = () => {
+function loadElements(){
   const saved = localStorage.getItem("opmeetProject");
   if(!saved) return;
 
@@ -261,13 +205,34 @@ window.onload = () => {
   data.elementen.forEach(e=>{
     addElement(e.type.split(" ")[0], e);
   });
+}
+
+// PDF export
+document.getElementById("exportPDF").onclick = ()=>{
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const saved = localStorage.getItem("opmeetProject");
+  if(!saved) return;
+  const data = JSON.parse(saved);
+
+  let y=20;
+  doc.setFontSize(16);
+  doc.text(`Klant: ${data.klant}`, 10, y); y+=10;
+  doc.text(`Datum: ${data.datum}`, 10, y); y+=10;
+
+  data.elementen.forEach((el,i)=>{
+    doc.text(`${el.type}`, 10, y); y+=10;
+    doc.text(`Breedte: ${el.breedte} cm`, 10, y); y+=10;
+    doc.text(`Hoogte: ${el.hoogte} cm`, 10, y); y+=10;
+  });
+  doc.save(`opmeting_${data.klant || 'project'}.pdf`);
 };
 
-/* ✅ Service Worker registreren (PWA) */
-if ("serviceWorker" in navigator) {
+/* ✅ PWA service worker */
+if("serviceWorker" in navigator){
   navigator.serviceWorker.register("service-worker.js");
 }
 </script>
-
 </body>
 </html>
+
