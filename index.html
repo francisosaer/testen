@@ -1,245 +1,143 @@
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Opmeting</title>
+  <meta charset="UTF-8">
+  <title>Opmeet Tool</title>
 
-<style>
-body {
-  font-family: Arial, sans-serif;
-  font-size: 20px;
-  margin: 0;
-  padding: 1rem;
-  background: #f4f4f4;
-}
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 900px;
+      margin: auto;
+      padding: 20px;
+    }
 
-header {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
+    .element {
+      border: 1px solid #ccc;
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 6px;
+    }
 
-header img { height: 50px; }
+    label {
+      display: block;
+      margin-top: 8px;
+    }
 
-button {
-  font-size: 20px;
-  padding: 10px 14px;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
-}
+    input, select {
+      width: 100%;
+      padding: 6px;
+    }
 
-.btn-add {
-  background: #2ecc71;
-  color: white;
-  width: 100%;
-  margin-bottom: 1rem;
-}
+    button {
+      padding: 10px 15px;
+      margin-top: 15px;
+      cursor: pointer;
+    }
 
-.element {
-  background: white;
-  padding: 1rem;
-  border-radius: 12px;
-  margin-bottom: 1rem;
-}
-
-.element-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-weight: bold;
-  font-size: 22px;
-  margin-bottom: .5rem;
-}
-
-.remove {
-  background: red;
-  color: white;
-  width: 36px;
-  height: 36px;
-  border-radius: 6px;
-  font-size: 22px;
-}
-
-.inputs {
-  display: flex;
-  gap: .5rem;
-  margin-top: .5rem;
-  flex-wrap: wrap;
-}
-
-.inputs select,
-.inputs input {
-  font-size: 20px;
-  flex: 1;
-  padding: .4rem;
-}
-
-.photos {
-  display: flex;
-  flex-wrap: wrap;
-  gap: .5rem;
-  margin-top: .5rem;
-}
-
-.photo-box {
-  position: relative;
-}
-
-.photo-box img {
-  width: 130px;
-  border-radius: 8px;
-}
-
-.photo-box button {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  background: red;
-  color: white;
-  width: 26px;
-  height: 26px;
-  border-radius: 4px;
-  font-size: 18px;
-}
-
-.camera-label {
-  display: inline-block;
-  margin-top: .5rem;
-  font-size: 36px;
-  background: #ddd;
-  padding: 8px 14px;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.btn-new-project {
-  background: green;
-  color: white;
-  font-size: 20px;
-  width: 100%;
-  margin-top: 10px;
-  padding: 12px;
-  border-radius: 8px;
-}
-</style>
+    img {
+      max-width: 200px;
+      margin-top: 10px;
+      display: block;
+    }
+  </style>
 </head>
-
 <body>
 
-<header>
-  <img src="Logordb.png">
-  <h2>Opmeting</h2>
-</header>
+<h1>Opmeet Tool</h1>
 
-<button class="btn-add" onclick="addElement()">➕ Element toevoegen</button>
 <div id="elements"></div>
 
-<button class="btn-new-project" onclick="newProject()">➕ Nieuw project</button>
+<button id="addElement">+ Element toevoegen</button>
+<p id="limitMessage"></p>
 
 <script>
-let data = JSON.parse(localStorage.getItem("opmeting")) || [];
-const elementsDiv = document.getElementById("elements");
+  const container = document.getElementById("elements");
+  const addBtn = document.getElementById("addElement");
+  const limitMessage = document.getElementById("limitMessage");
 
-function save() {
-  localStorage.setItem("opmeting", JSON.stringify(data));
-}
+  let totalElements = 0;
+  const maxElements = 30;
 
-function addElement(type = "Raam") {
-  data.push({ type, breedte: "", hoogte: "", photos: [] });
-  save();
-  render();
-  setTimeout(() => {
-    elementsDiv.lastElementChild.scrollIntoView({ behavior: "smooth" });
-  }, 100);
-}
-
-function removeElement(i) {
-  data.splice(i, 1);
-  save();
-  render();
-}
-
-function handlePhoto(i, files) {
-  if (!files || !files[0]) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    data[i].photos.push(reader.result);
-    save();
-    render();
+  const counters = {
+    Raam: 0,
+    Deur: 0,
+    Poort: 0
   };
-  reader.readAsDataURL(files[0]);
-}
 
-function removePhoto(i, p) {
-  data[i].photos.splice(p, 1);
-  save();
-  render();
-}
+  addBtn.addEventListener("click", () => {
+    if (totalElements >= maxElements) {
+      limitMessage.textContent = "Maximum 30 elementen bereikt.";
+      return;
+    }
 
-function newProject() {
-  if (confirm("Weet je zeker dat je een nieuw project wilt starten? Alles wordt gewist.")) {
-    data = [];
-    localStorage.removeItem("opmeting");
-    render();
-  }
-}
+    totalElements++;
 
-function render() {
-  elementsDiv.innerHTML = "";
-  const count = { Raam: 0, Deur: 0, Poort: 0 };
-
-  data.forEach((el, i) => {
-    count[el.type]++;
     const div = document.createElement("div");
     div.className = "element";
 
-    const inputId = `cameraInput-${i}`;
-
     div.innerHTML = `
-      <div class="element-header">
-        ${el.type} ${count[el.type]}
-        <button class="remove" onclick="removeElement(${i})">✖</button>
+      <h3>Element ${totalElements}</h3>
+
+      <label>Type</label>
+      <select class="type">
+        <option value="">-- kies --</option>
+        <option value="Raam">Raam</option>
+        <option value="Deur">Deur</option>
+        <option value="Poort">Poort</option>
+      </select>
+
+      <div class="details" style="display:none">
+        <p class="label"></p>
+
+        <label>Breedte (cm)</label>
+        <input type="number" min="0">
+
+        <label>Hoogte (cm)</label>
+        <input type="number" min="0">
+
+        <label>Foto nemen (max 2MB)</label>
+        <input type="file" accept="image/*" capture="environment">
+
+        <img class="preview" style="display:none">
       </div>
-
-      <div class="inputs">
-        <select onchange="data[${i}].type=this.value; save(); render();">
-          <option ${el.type==="Raam"?"selected":""}>Raam</option>
-          <option ${el.type==="Deur"?"selected":""}>Deur</option>
-          <option ${el.type==="Poort"?"selected":""}>Poort</option>
-        </select>
-
-        <input placeholder="Breedte (cm)" value="${el.breedte}"
-          onchange="data[${i}].breedte=this.value; save();">
-
-        <input placeholder="Hoogte (cm)" value="${el.hoogte}"
-          onchange="data[${i}].hoogte=this.value; save();">
-      </div>
-
-      <div class="photos"></div>
-
-      <label class="camera-label" for="${inputId}">📷</label>
-      <input type="file" id="${inputId}" accept="image/*" style="display:none" onchange="handlePhoto(${i}, this.files)">
     `;
 
-    elementsDiv.appendChild(div);
+    container.appendChild(div);
 
-    const photos = div.querySelector(".photos");
-    el.photos.forEach((p, pi) => {
-      const box = document.createElement("div");
-      box.className = "photo-box";
-      box.innerHTML = `
-        <img src="${p}">
-        <button onclick="removePhoto(${i},${pi})">✖</button>
-      `;
-      photos.appendChild(box);
+    const typeSelect = div.querySelector(".type");
+    const details = div.querySelector(".details");
+    const label = div.querySelector(".label");
+    const fileInput = div.querySelector("input[type=file]");
+    const preview = div.querySelector(".preview");
+
+    typeSelect.addEventListener("change", () => {
+      if (!typeSelect.value) return;
+
+      counters[typeSelect.value]++;
+      label.textContent = `${typeSelect.value} ${counters[typeSelect.value]}`;
+      details.style.display = "block";
+    });
+
+    fileInput.addEventListener("change", () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+
+      if (file.size > 2 * 1024 * 1024) {
+        alert("Bestand te groot! Maximaal 2MB.");
+        fileInput.value = "";
+        preview.style.display = "none";
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = e => {
+        preview.src = e.target.result;
+        preview.style.display = "block";
+      };
+      reader.readAsDataURL(file);
     });
   });
-}
-
-render();
 </script>
 
 </body>
