@@ -162,15 +162,15 @@ function removeElement(i) {
   render();
 }
 
-function handlePhoto(i, input) {
-  if (!input.files || !input.files[0]) return;
+function handlePhoto(i, files) {
+  if (!files || !files[0]) return;
   const reader = new FileReader();
   reader.onload = () => {
     data[i].photos.push(reader.result);
     save();
     render();
   };
-  reader.readAsDataURL(input.files[0]);
+  reader.readAsDataURL(files[0]);
 }
 
 function removePhoto(i, p) {
@@ -196,6 +196,8 @@ function render() {
     const div = document.createElement("div");
     div.className = "element";
 
+    const inputId = `cameraInput-${i}`;
+
     div.innerHTML = `
       <div class="element-header">
         ${el.type} ${count[el.type]}
@@ -218,11 +220,8 @@ function render() {
 
       <div class="photos"></div>
 
-      <label class="camera-label">
-        📷
-        <input type="file" accept="image/*" style="display:none"
-               onchange="handlePhoto(${i}, this)">
-      </label>
+      <label class="camera-label" for="${inputId}">📷</label>
+      <input type="file" id="${inputId}" accept="image/*" style="display:none" onchange="handlePhoto(${i}, this.files)">
     `;
 
     elementsDiv.appendChild(div);
@@ -245,5 +244,3 @@ render();
 
 </body>
 </html>
-
-
