@@ -1,227 +1,207 @@
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Opmeting</title>
-
-<style>
-  body {
-    font-family: Arial, sans-serif;
-    margin: 10px;
-    background: #f5f5f5;
-    font-size: 16px;
-  }
-
-  h1 {
-    font-size: 1.4rem;
-    text-align: center;
-  }
-
-  .top-buttons {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 10px;
-  }
-
-  button {
-    flex: 1;
-    font-size: 1rem;
-    padding: 10px;
-    border-radius: 8px;
-    border: none;
-    background: #007bff;
-    color: white;
-  }
-
-  .new {
-    background: #6c757d;
-  }
-
-  select, input {
-    font-size: 1rem;
-    padding: 8px;
-    width: 100%;
-    margin-top: 6px;
-  }
-
-  .warning {
-    background: #ff5252;
-    color: white;
-    padding: 10px;
-    border-radius: 8px;
-    text-align: center;
-    font-size: 0.95rem;
-    margin-bottom: 10px;
-  }
-
-  .element {
-    background: white;
-    padding: 12px;
-    border-radius: 10px;
-    margin-bottom: 12px;
-    position: relative;
-  }
-
-  .delete {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    background: none;
-    border: none;
-    font-size: 1.3rem;
-    color: #777;
-  }
-
-  .photos {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    margin-top: 8px;
-  }
-
-  .photo-box {
-    position: relative;
-  }
-
-  .photo-box img {
-    width: 90px;
-    height: 90px;
-    object-fit: cover;
-    border-radius: 8px;
-  }
-
-  .photo-box span {
-    position: absolute;
-    top: -6px;
-    right: -6px;
-    background: red;
-    color: white;
-    border-radius: 50%;
-    width: 20px;
-    height: 20px;
-    font-size: 14px;
-    text-align: center;
-    line-height: 20px;
-  }
-
-  .camera {
-    font-size: 1.6rem;
-    background: #eee;
-    border-radius: 8px;
-    padding: 8px;
-    display: inline-block;
-    margin-top: 8px;
-  }
-</style>
+  <meta charset="UTF-8" />
+  <title>Opmeting Ramen</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 1rem;
+      background: #f4f4f4;
+    }
+    h1 { margin-top: 0; }
+    .card {
+      background: white;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      border-radius: 6px;
+    }
+    label {
+      display: block;
+      margin-top: 0.5rem;
+    }
+    input, select, button {
+      width: 100%;
+      padding: 0.5rem;
+      margin-top: 0.25rem;
+    }
+    button {
+      cursor: pointer;
+    }
+    .element {
+      border: 1px solid #ddd;
+      padding: 0.75rem;
+      margin-top: 0.75rem;
+      border-radius: 4px;
+    }
+    .fotos img {
+      max-width: 100px;
+      margin-right: 0.5rem;
+      margin-top: 0.5rem;
+      border-radius: 4px;
+    }
+    .remove {
+      background: #d9534f;
+      color: white;
+      border: none;
+      margin-top: 0.5rem;
+    }
+  </style>
 </head>
-
 <body>
 
 <h1>Opmeting</h1>
 
-<div id="warning" class="warning" style="display:none;">
-⚠️ Bij vernieuwen (refresh) kan alles verloren gaan
+<div class="card">
+  <label>Klantnaam</label>
+  <input id="klantNaam" placeholder="Naam klant" />
 </div>
 
-<div class="top-buttons">
-  <button onclick="addElement()">➕ Element</button>
-  <button class="new" onclick="newProject()">🆕 Nieuw project</button>
+<div class="card">
+  <label>Nieuw element</label>
+  <select id="elementType">
+    <option value="raam">Raam</option>
+    <option value="deur">Deur</option>
+    <option value="poort">Poort</option>
+  </select>
+  <button onclick="addElement()">Toevoegen</button>
 </div>
 
-<div id="elements"></div>
+<div id="elementen"></div>
 
 <script>
-let elements = JSON.parse(localStorage.getItem("elements") || "[]");
+  const STORAGE_KEY = "opmeting_project";
 
-function save() {
-  localStorage.setItem("elements", JSON.stringify(elements));
-  document.getElementById("warning").style.display = "block";
-}
-
-window.onbeforeunload = () => true;
-
-function newProject() {
-  if(confirm("Nieuw project starten?\nAlle huidige gegevens worden gewist.")) {
-    elements = [];
-    localStorage.removeItem("elements");
-    document.getElementById("warning").style.display = "none";
-    render();
-  }
-}
-
-function addElement() {
-  elements.push({ type:"raam", w:"", h:"", photos:[] });
-  save();
-  render();
-}
-
-function removeElement(i) {
-  if(confirm("Element verwijderen?")) {
-    elements.splice(i,1);
-    save();
-    render();
-  }
-}
-
-function addPhoto(i, file) {
-  const reader = new FileReader();
-  reader.onload = e => {
-    elements[i].photos.push(e.target.result);
-    save();
-    render();
+  let project = {
+    klantNaam: "",
+    elementen: []
   };
-  reader.readAsDataURL(file);
-}
 
-function removePhoto(i,p) {
-  elements[i].photos.splice(p,1);
-  save();
-  render();
-}
+  // ---------- Helpers ----------
+  function save() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(project));
+  }
 
-function render() {
-  const c = document.getElementById("elements");
-  c.innerHTML = "";
+  function load() {
+    const data = localStorage.getItem(STORAGE_KEY);
+    if (data) project = JSON.parse(data);
+  }
 
-  elements.forEach((el,i)=>{
-    c.innerHTML += `
-      <div class="element">
-        <button class="delete" onclick="removeElement(${i})">🗑️</button>
+  function uuid() {
+    return crypto.randomUUID();
+  }
 
-        <select onchange="elements[${i}].type=this.value;save();">
-          <option ${el.type=="raam"?"selected":""}>raam</option>
-          <option ${el.type=="deur"?"selected":""}>deur</option>
-          <option ${el.type=="poort"?"selected":""}>poort</option>
-        </select>
+  // ---------- Foto verkleinen ----------
+  function resizeImage(file, callback) {
+    const img = new Image();
+    const reader = new FileReader();
 
-        <input placeholder="Breedte (cm)" value="${el.w}"
-          oninput="elements[${i}].w=this.value;save();">
+    reader.onload = e => {
+      img.src = e.target.result;
+    };
 
-        <input placeholder="Hoogte (cm)" value="${el.h}"
-          oninput="elements[${i}].h=this.value;save();">
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      const maxWidth = 1280;
+      const scale = Math.min(1, maxWidth / img.width);
 
-        <label class="camera">
-          📷
+      canvas.width = img.width * scale;
+      canvas.height = img.height * scale;
+
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      callback(canvas.toDataURL("image/jpeg", 0.7));
+    };
+
+    reader.readAsDataURL(file);
+  }
+
+  // ---------- Elementen ----------
+  function addElement() {
+    const type = document.getElementById("elementType").value;
+    project.elementen.push({
+      id: uuid(),
+      type,
+      breedte: "",
+      hoogte: "",
+      fotos: []
+    });
+    save();
+    render();
+  }
+
+  function removeElement(id) {
+    project.elementen = project.elementen.filter(e => e.id !== id);
+    save();
+    render();
+  }
+
+  function render() {
+    document.getElementById("klantNaam").value = project.klantNaam;
+
+    const container = document.getElementById("elementen");
+    container.innerHTML = "";
+
+    ["raam", "deur", "poort"].forEach(type => {
+      const list = project.elementen.filter(e => e.type === type);
+      list.forEach((el, index) => {
+        const div = document.createElement("div");
+        div.className = "card element";
+
+        div.innerHTML = `
+          <strong>${type.charAt(0).toUpperCase() + type.slice(1)} ${index + 1}</strong>
+
+          <label>Breedte (mm)</label>
+          <input type="number" value="${el.breedte}"
+            onchange="updateValue('${el.id}', 'breedte', this.value)" />
+
+          <label>Hoogte (mm)</label>
+          <input type="number" value="${el.hoogte}"
+            onchange="updateValue('${el.id}', 'hoogte', this.value)" />
+
+          <label>Foto toevoegen</label>
           <input type="file" accept="image/*" capture="environment"
-            hidden onchange="addPhoto(${i},this.files[0])">
-        </label>
+            onchange="addPhoto('${el.id}', this.files[0])" />
 
-        <div class="photos">
-          ${el.photos.map((p,j)=>`
-            <div class="photo-box">
-              <img src="${p}">
-              <span onclick="removePhoto(${i},${j})">×</span>
-            </div>
-          `).join("")}
-        </div>
-      </div>
-    `;
+          <div class="fotos">
+            ${el.fotos.map(f => `<img src="${f}" />`).join("")}
+          </div>
+
+          <button class="remove" onclick="removeElement('${el.id}')">
+            Element verwijderen
+          </button>
+        `;
+        container.appendChild(div);
+      });
+    });
+  }
+
+  function updateValue(id, field, value) {
+    const el = project.elementen.find(e => e.id === id);
+    el[field] = value;
+    save();
+  }
+
+  function addPhoto(id, file) {
+    if (!file) return;
+    resizeImage(file, resized => {
+      const el = project.elementen.find(e => e.id === id);
+      el.fotos.push(resized);
+      save();
+      render();
+    });
+  }
+
+  // ---------- Init ----------
+  document.getElementById("klantNaam").addEventListener("input", e => {
+    project.klantNaam = e.target.value;
+    save();
   });
-}
 
-render();
+  load();
+  render();
 </script>
 
 </body>
