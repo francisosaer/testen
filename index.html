@@ -84,16 +84,24 @@ function uuid() { return crypto.randomUUID(); }
 /* ===== ELEMENTEN ===== */
 function addElement() {
   const kamer = document.getElementById("kamerType").value;
+  const type = elementType.value;
+
+  // bepaal het volgende nummer voor dit type
+  const bestaande = project.elementen.filter(e => e.type === type);
+  const nextNummer = bestaande.length > 0 ? Math.max(...bestaande.map(e=>e.nummer)) + 1 : 1;
+
   project.elementen.push({
     id: uuid(),
-    type: elementType.value,
+    type: type,
     kamer: kamer,
+    nummer: nextNummer, // vaste nummering
     breedte: "",
     hoogte: "",
     fotos: []
   });
   save(); render();
 }
+
 function removeElement(id) { project.elementen = project.elementen.filter(e=>e.id!==id); save(); render(); }
 function updateValue(id,field,value) { project.elementen.find(e=>e.id===id)[field]=value; save(); }
 
@@ -144,16 +152,12 @@ function render(){
 
   // globale lijst, nieuwste element bovenaan
   const reversedElements = project.elementen.slice().reverse();
-  const typeCounters = { raam:0, deur:0, poort:0 };
 
   reversedElements.forEach(el => {
-    typeCounters[el.type]++;
-    const indexNumber = typeCounters[el.type];
-
     const d = document.createElement("div");
     d.className="card element";
     d.innerHTML=`
-      <strong>${el.type[0].toUpperCase()+el.type.slice(1)} ${indexNumber} - ${el.kamer}</strong>
+      <strong>${el.type[0].toUpperCase()+el.type.slice(1)} ${el.nummer} - ${el.kamer}</strong>
       <label>Breedte (mm)</label>
       <input type="number" value="${el.breedte}" oninput="updateValue('${el.id}','breedte',this.value)">
       <label>Hoogte (mm)</label>
