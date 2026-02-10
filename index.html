@@ -17,29 +17,30 @@
       margin-bottom: 1rem;
       border-radius: 6px;
     }
-    label {
-      display: block;
-      margin-top: 0.5rem;
-    }
+    label { display: block; margin-top: 0.5rem; }
     input, select, button {
       width: 100%;
       padding: 0.5rem;
       margin-top: 0.25rem;
     }
-    button {
-      cursor: pointer;
-    }
+    button { cursor: pointer; }
     .element {
       border: 1px solid #ddd;
       padding: 0.75rem;
       margin-top: 0.75rem;
       border-radius: 4px;
     }
-    .fotos img {
-      max-width: 100px;
-      margin-right: 0.5rem;
+    .fotos {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
       margin-top: 0.5rem;
+    }
+    .fotos img {
+      width: 100px;
+      height: auto;
       border-radius: 4px;
+      border: 1px solid #ccc;
     }
     .remove {
       background: #d9534f;
@@ -71,137 +72,137 @@
 <div id="elementen"></div>
 
 <script>
-  const STORAGE_KEY = "opmeting_project";
+const STORAGE_KEY = "opmeting_project";
 
-  let project = {
-    klantNaam: "",
-    elementen: []
-  };
+let project = {
+  klantNaam: "",
+  elementen: []
+};
 
-  // ---------- Helpers ----------
-  function save() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(project));
-  }
+// ---------- Storage ----------
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(project));
+}
 
-  function load() {
-    const data = localStorage.getItem(STORAGE_KEY);
-    if (data) project = JSON.parse(data);
-  }
+function load() {
+  const data = localStorage.getItem(STORAGE_KEY);
+  if (data) project = JSON.parse(data);
+}
 
-  function uuid() {
-    return crypto.randomUUID();
-  }
+function uuid() {
+  return crypto.randomUUID();
+}
 
-  // ---------- Foto verkleinen ----------
-  function resizeImage(file, callback) {
-    const img = new Image();
+// ---------- Image resize ----------
+function resizeImage(file) {
+  return new Promise(resolve => {
     const reader = new FileReader();
+    const img = new Image();
 
-    reader.onload = e => {
-      img.src = e.target.result;
-    };
-
+    reader.onload = e => img.src = e.target.result;
     img.onload = () => {
       const canvas = document.createElement("canvas");
-      const maxWidth = 1280;
-      const scale = Math.min(1, maxWidth / img.width);
+      const max = 1280;
+      const scale = Math.min(1, max / img.width);
 
       canvas.width = img.width * scale;
       canvas.height = img.height * scale;
 
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
 
-      callback(canvas.toDataURL("image/jpeg", 0.7));
+      resolve(canvas.toDataURL("image/jpeg", 0.7));
     };
 
     reader.readAsDataURL(file);
-  }
-
-  // ---------- Elementen ----------
-  function addElement() {
-    const type = document.getElementById("elementType").value;
-    project.elementen.push({
-      id: uuid(),
-      type,
-      breedte: "",
-      hoogte: "",
-      fotos: []
-    });
-    save();
-    render();
-  }
-
-  function removeElement(id) {
-    project.elementen = project.elementen.filter(e => e.id !== id);
-    save();
-    render();
-  }
-
-  function render() {
-    document.getElementById("klantNaam").value = project.klantNaam;
-
-    const container = document.getElementById("elementen");
-    container.innerHTML = "";
-
-    ["raam", "deur", "poort"].forEach(type => {
-      const list = project.elementen.filter(e => e.type === type);
-      list.forEach((el, index) => {
-        const div = document.createElement("div");
-        div.className = "card element";
-
-        div.innerHTML = `
-          <strong>${type.charAt(0).toUpperCase() + type.slice(1)} ${index + 1}</strong>
-
-          <label>Breedte (mm)</label>
-          <input type="number" value="${el.breedte}"
-            onchange="updateValue('${el.id}', 'breedte', this.value)" />
-
-          <label>Hoogte (mm)</label>
-          <input type="number" value="${el.hoogte}"
-            onchange="updateValue('${el.id}', 'hoogte', this.value)" />
-
-          <label>Foto toevoegen</label>
-          <input type="file" accept="image/*" capture="environment"
-            onchange="addPhoto('${el.id}', this.files[0])" />
-
-          <div class="fotos">
-            ${el.fotos.map(f => `<img src="${f}" />`).join("")}
-          </div>
-
-          <button class="remove" onclick="removeElement('${el.id}')">
-            Element verwijderen
-          </button>
-        `;
-        container.appendChild(div);
-      });
-    });
-  }
-
-  function updateValue(id, field, value) {
-    const el = project.elementen.find(e => e.id === id);
-    el[field] = value;
-    save();
-  }
-
-  function addPhoto(id, file) {
-    if (!file) return;
-    resizeImage(file, resized => {
-      const el = project.elementen.find(e => e.id === id);
-      el.fotos.push(resized);
-      save();
-      render();
-    });
-  }
-
-  // ---------- Init ----------
-  document.getElementById("klantNaam").addEventListener("input", e => {
-    project.klantNaam = e.target.value;
-    save();
   });
+}
 
-  load();
+// ---------- Element logic ----------
+function addElement() {
+  const type = elementType.value;
+  project.elementen.push({
+    id: uuid(),
+    type,
+    breedte: "",
+    hoogte: "",
+    fotos: []
+  });
+  save();
   render();
+}
+
+function removeElement(id) {
+  project.elementen = project.elementen.filter(e => e.id !== id);
+  save();
+  render();
+}
+
+function updateValue(id, field, value) {
+  const el = project.elementen.find(e => e.id === id);
+  el[field] = value;
+  save();
+}
+
+// ---------- Photo ----------
+async function addPhoto(id, fileInput) {
+  const file = fileInput.files[0];
+  if (!file) return;
+
+  const resized = await resizeImage(file);
+  const el = project.elementen.find(e => e.id === id);
+  el.fotos.push(resized);
+
+  save();
+  render();
+}
+
+// ---------- Render ----------
+function render() {
+  klantNaam.value = project.klantNaam;
+  const container = document.getElementById("elementen");
+  container.innerHTML = "";
+
+  ["raam", "deur", "poort"].forEach(type => {
+    const list = project.elementen.filter(e => e.type === type);
+    list.forEach((el, index) => {
+      const div = document.createElement("div");
+      div.className = "card element";
+      div.innerHTML = `
+        <strong>${type.charAt(0).toUpperCase() + type.slice(1)} ${index + 1}</strong>
+
+        <label>Breedte (mm)</label>
+        <input type="number" value="${el.breedte}"
+          oninput="updateValue('${el.id}','breedte',this.value)" />
+
+        <label>Hoogte (mm)</label>
+        <input type="number" value="${el.hoogte}"
+          oninput="updateValue('${el.id}','hoogte',this.value)" />
+
+        <label>Foto toevoegen</label>
+        <input type="file" accept="image/*" capture="environment"
+          onchange="addPhoto('${el.id}', this)" />
+
+        <div class="fotos">
+          ${el.fotos.map(f => `<img src="${f}">`).join("")}
+        </div>
+
+        <button class="remove" onclick="removeElement('${el.id}')">
+          Element verwijderen
+        </button>
+      `;
+      container.appendChild(div);
+    });
+  });
+}
+
+// ---------- Init ----------
+klantNaam.addEventListener("input", e => {
+  project.klantNaam = e.target.value;
+  save();
+});
+
+load();
+render();
 </script>
 
 </body>
