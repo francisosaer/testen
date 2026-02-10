@@ -17,7 +17,10 @@
       margin-bottom: 1rem;
       border-radius: 6px;
     }
-    label { display: block; margin-top: 0.5rem; }
+    label {
+      display: block;
+      margin-top: 0.5rem;
+    }
     input, select, button {
       width: 100%;
       padding: 0.5rem;
@@ -36,17 +39,32 @@
       gap: 0.5rem;
       margin-top: 0.5rem;
     }
-    .fotos img {
+    .foto-wrapper {
+      position: relative;
+    }
+    .foto-wrapper img {
       width: 100px;
-      height: auto;
       border-radius: 4px;
       border: 1px solid #ccc;
+    }
+    .foto-wrapper button {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      background: #d9534f;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      font-weight: bold;
+      cursor: pointer;
     }
     .remove {
       background: #d9534f;
       color: white;
       border: none;
-      margin-top: 0.5rem;
+      margin-top: 0.75rem;
     }
   </style>
 </head>
@@ -72,6 +90,9 @@
 <div id="elementen"></div>
 
 <script>
+/* =========================
+   DATA & STORAGE
+========================= */
 const STORAGE_KEY = "opmeting_project";
 
 let project = {
@@ -79,7 +100,6 @@ let project = {
   elementen: []
 };
 
-// ---------- Storage ----------
 function save() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(project));
 }
@@ -93,22 +113,26 @@ function uuid() {
   return crypto.randomUUID();
 }
 
-// ---------- Image resize ----------
+/* =========================
+   IMAGE RESIZE
+========================= */
 function resizeImage(file) {
   return new Promise(resolve => {
     const reader = new FileReader();
     const img = new Image();
 
     reader.onload = e => img.src = e.target.result;
+
     img.onload = () => {
       const canvas = document.createElement("canvas");
-      const max = 1280;
-      const scale = Math.min(1, max / img.width);
+      const maxWidth = 1280;
+      const scale = Math.min(1, maxWidth / img.width);
 
       canvas.width = img.width * scale;
       canvas.height = img.height * scale;
 
-      canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.getContext("2d")
+        .drawImage(img, 0, 0, canvas.width, canvas.height);
 
       resolve(canvas.toDataURL("image/jpeg", 0.7));
     };
@@ -117,12 +141,13 @@ function resizeImage(file) {
   });
 }
 
-// ---------- Element logic ----------
+/* =========================
+   ELEMENTEN
+========================= */
 function addElement() {
-  const type = elementType.value;
   project.elementen.push({
     id: uuid(),
-    type,
+    type: elementType.value,
     breedte: "",
     hoogte: "",
     fotos: []
@@ -143,20 +168,33 @@ function updateValue(id, field, value) {
   save();
 }
 
-// ---------- Photo ----------
-async function addPhoto(id, fileInput) {
-  const file = fileInput.files[0];
+/* =========================
+   FOTO'S
+========================= */
+async function addPhoto(elementId, input) {
+  const file = input.files[0];
   if (!file) return;
 
   const resized = await resizeImage(file);
-  const el = project.elementen.find(e => e.id === id);
+  const el = project.elementen.find(e => e.id === elementId);
   el.fotos.push(resized);
+
+  input.value = ""; // 🔑 noodzakelijk
 
   save();
   render();
 }
 
-// ---------- Render ----------
+function removePhoto(elementId, photoIndex) {
+  const el = project.elementen.find(e => e.id === elementId);
+  el.fotos.splice(photoIndex, 1);
+  save();
+  render();
+}
+
+/* =========================
+   RENDER
+========================= */
 function render() {
   klantNaam.value = project.klantNaam;
   const container = document.getElementById("elementen");
@@ -164,38 +202,49 @@ function render() {
 
   ["raam", "deur", "poort"].forEach(type => {
     const list = project.elementen.filter(e => e.type === type);
+
     list.forEach((el, index) => {
       const div = document.createElement("div");
       div.className = "card element";
+
       div.innerHTML = `
         <strong>${type.charAt(0).toUpperCase() + type.slice(1)} ${index + 1}</strong>
 
         <label>Breedte (mm)</label>
         <input type="number" value="${el.breedte}"
-          oninput="updateValue('${el.id}','breedte',this.value)" />
+          oninput="updateValue('${el.id}','breedte',this.value)">
 
         <label>Hoogte (mm)</label>
         <input type="number" value="${el.hoogte}"
-          oninput="updateValue('${el.id}','hoogte',this.value)" />
+          oninput="updateValue('${el.id}','hoogte',this.value)">
 
         <label>Foto toevoegen</label>
         <input type="file" accept="image/*" capture="environment"
-          onchange="addPhoto('${el.id}', this)" />
+          onchange="addPhoto('${el.id}', this)">
 
         <div class="fotos">
-          ${el.fotos.map(f => `<img src="${f}">`).join("")}
+          ${el.fotos.map((f, i) => `
+            <div class="foto-wrapper">
+              <img src="${f}">
+              <button onclick="removePhoto('${el.id}', ${i})">×</button>
+            </div>
+          `).join("")}
         </div>
 
-        <button class="remove" onclick="removeElement('${el.id}')">
+        <button class="remove"
+          onclick="removeElement('${el.id}')">
           Element verwijderen
         </button>
       `;
+
       container.appendChild(div);
     });
   });
 }
 
-// ---------- Init ----------
+/* =========================
+   INIT
+========================= */
 klantNaam.addEventListener("input", e => {
   project.klantNaam = e.target.value;
   save();
