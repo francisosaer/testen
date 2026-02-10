@@ -120,28 +120,39 @@ function render(){
   klantNaam.value = project.klantNaam;
   const c=document.getElementById("elementen");
   c.innerHTML="";
+
   ["raam","deur","poort"].forEach(type=>{
-    project.elementen.filter(e=>e.type===type).forEach((el,i)=>{
-      const d=document.createElement("div");
-      d.className="card element";
-      d.innerHTML=`
-        <strong>${type[0].toUpperCase()+type.slice(1)} ${i+1}</strong>
-        <label>Breedte (mm)</label>
-        <input type="number" value="${el.breedte}" oninput="updateValue('${el.id}','breedte',this.value)">
-        <label>Hoogte (mm)</label>
-        <input type="number" value="${el.hoogte}" oninput="updateValue('${el.id}','hoogte',this.value)">
-        <button onclick="openCamera('${el.id}')">Camera openen</button>
-        <div class="fotos">
-          ${el.fotos.map((f,idx)=>`
-            <div class="foto">
-              <img src="${f}">
-              <button onclick="project.elementen.find(e=>e.id==='${el.id}').fotos.splice(${idx},1); save(); render();">×</button>
-            </div>`).join("")}
-        </div>
-        <button class="remove" onclick="removeElement('${el.id}')">Element verwijderen</button>
-      `;
-      c.appendChild(d);
-    });
+    // nieuwste element bovenaan
+    project.elementen
+      .filter(e=>e.type===type)
+      .slice() // kopie
+      .reverse()
+      .forEach((el,i)=>{
+        const d=document.createElement("div");
+        d.className="card element";
+
+        // correcte nummering
+        const allSameType = project.elementen.filter(e=>e.type===type);
+        const indexNumber = allSameType.indexOf(el) + 1;
+
+        d.innerHTML=`
+          <strong>${type[0].toUpperCase()+type.slice(1)} ${indexNumber}</strong>
+          <label>Breedte (mm)</label>
+          <input type="number" value="${el.breedte}" oninput="updateValue('${el.id}','breedte',this.value)">
+          <label>Hoogte (mm)</label>
+          <input type="number" value="${el.hoogte}" oninput="updateValue('${el.id}','hoogte',this.value)">
+          <button onclick="openCamera('${el.id}')">Camera openen</button>
+          <div class="fotos">
+            ${el.fotos.map((f,idx)=>`
+              <div class="foto">
+                <img src="${f}">
+                <button onclick="project.elementen.find(e=>e.id==='${el.id}').fotos.splice(${idx},1); save(); render();">×</button>
+              </div>`).join("")}
+          </div>
+          <button class="remove" onclick="removeElement('${el.id}')">Element verwijderen</button>
+        `;
+        c.appendChild(d);
+      });
   });
 }
 
