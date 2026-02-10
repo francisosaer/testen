@@ -10,61 +10,55 @@
       padding: 1rem;
       background: #f4f4f4;
     }
-    h1 { margin-top: 0; }
     .card {
       background: white;
       padding: 1rem;
       margin-bottom: 1rem;
       border-radius: 6px;
     }
-    label {
-      display: block;
-      margin-top: 0.5rem;
-    }
+    label { display:block; margin-top:.5rem; }
     input, select, button {
-      width: 100%;
-      padding: 0.5rem;
-      margin-top: 0.25rem;
+      width:100%;
+      padding:.5rem;
+      margin-top:.25rem;
     }
-    button { cursor: pointer; }
     .element {
-      border: 1px solid #ddd;
-      padding: 0.75rem;
-      margin-top: 0.75rem;
-      border-radius: 4px;
+      border:1px solid #ddd;
+      padding:.75rem;
+      margin-top:.75rem;
+      border-radius:4px;
     }
     .fotos {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      margin-top: 0.5rem;
+      display:flex;
+      flex-wrap:wrap;
+      gap:.5rem;
+      margin-top:.5rem;
     }
-    .foto-wrapper {
-      position: relative;
+    .foto {
+      position:relative;
     }
-    .foto-wrapper img {
-      width: 100px;
-      border-radius: 4px;
-      border: 1px solid #ccc;
+    .foto img {
+      width:100px;
+      border-radius:4px;
+      border:1px solid #ccc;
     }
-    .foto-wrapper button {
-      position: absolute;
-      top: 2px;
-      right: 2px;
-      background: #d9534f;
-      color: white;
-      border: none;
-      border-radius: 50%;
-      width: 24px;
-      height: 24px;
-      font-weight: bold;
-      cursor: pointer;
+    .foto button {
+      position:absolute;
+      top:2px;
+      right:2px;
+      background:#d9534f;
+      color:white;
+      border:none;
+      border-radius:50%;
+      width:24px;
+      height:24px;
+      cursor:pointer;
     }
     .remove {
-      background: #d9534f;
-      color: white;
-      border: none;
-      margin-top: 0.75rem;
+      background:#d9534f;
+      color:white;
+      border:none;
+      margin-top:.75rem;
     }
   </style>
 </head>
@@ -74,7 +68,7 @@
 
 <div class="card">
   <label>Klantnaam</label>
-  <input id="klantNaam" placeholder="Naam klant" />
+  <input id="klantNaam">
 </div>
 
 <div class="card">
@@ -90,125 +84,96 @@
 <div id="elementen"></div>
 
 <script>
-/* =========================
-   DATA & STORAGE
-========================= */
 const STORAGE_KEY = "opmeting_project";
 
-let project = {
-  klantNaam: "",
-  elementen: []
-};
+let project = { klantNaam:"", elementen:[] };
 
 function save() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(project));
 }
-
 function load() {
-  const data = localStorage.getItem(STORAGE_KEY);
-  if (data) project = JSON.parse(data);
+  const d = localStorage.getItem(STORAGE_KEY);
+  if (d) project = JSON.parse(d);
 }
-
 function uuid() {
   return crypto.randomUUID();
 }
 
-/* =========================
-   IMAGE RESIZE
-========================= */
+/* ===== Image resize ===== */
 function resizeImage(file) {
   return new Promise(resolve => {
     const reader = new FileReader();
     const img = new Image();
 
     reader.onload = e => img.src = e.target.result;
-
     img.onload = () => {
       const canvas = document.createElement("canvas");
-      const maxWidth = 1280;
-      const scale = Math.min(1, maxWidth / img.width);
+      const max = 1280;
+      const scale = Math.min(1, max / img.width);
 
       canvas.width = img.width * scale;
       canvas.height = img.height * scale;
-
-      canvas.getContext("2d")
-        .drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
 
       resolve(canvas.toDataURL("image/jpeg", 0.7));
     };
-
     reader.readAsDataURL(file);
   });
 }
 
-/* =========================
-   ELEMENTEN
-========================= */
+/* ===== Elementen ===== */
 function addElement() {
   project.elementen.push({
     id: uuid(),
     type: elementType.value,
-    breedte: "",
-    hoogte: "",
-    fotos: []
+    breedte:"",
+    hoogte:"",
+    fotos:[]
   });
-  save();
-  render();
+  save(); render();
 }
-
 function removeElement(id) {
   project.elementen = project.elementen.filter(e => e.id !== id);
-  save();
-  render();
+  save(); render();
 }
-
 function updateValue(id, field, value) {
-  const el = project.elementen.find(e => e.id === id);
-  el[field] = value;
+  project.elementen.find(e => e.id === id)[field] = value;
   save();
 }
 
-/* =========================
-   FOTO'S
-========================= */
-async function addPhoto(elementId, input) {
-  const file = input.files[0];
-  if (!file) return;
-
-  const resized = await resizeImage(file);
+/* ===== Foto’s (BELANGRIJK) ===== */
+async function addPhotos(elementId, input) {
   const el = project.elementen.find(e => e.id === elementId);
-  el.fotos.push(resized);
 
-  input.value = ""; // 🔑 noodzakelijk
+  for (const file of input.files) {
+    const resized = await resizeImage(file);
+    el.fotos.push(resized);
+  }
 
+  input.value = ""; // reset noodzakelijk
   save();
   render();
 }
 
-function removePhoto(elementId, photoIndex) {
-  const el = project.elementen.find(e => e.id === elementId);
-  el.fotos.splice(photoIndex, 1);
-  save();
-  render();
+function removePhoto(elementId, index) {
+  project.elementen.find(e => e.id === elementId)
+    .fotos.splice(index, 1);
+  save(); render();
 }
 
-/* =========================
-   RENDER
-========================= */
+/* ===== Render ===== */
 function render() {
   klantNaam.value = project.klantNaam;
-  const container = document.getElementById("elementen");
-  container.innerHTML = "";
+  const c = document.getElementById("elementen");
+  c.innerHTML = "";
 
-  ["raam", "deur", "poort"].forEach(type => {
-    const list = project.elementen.filter(e => e.type === type);
-
-    list.forEach((el, index) => {
-      const div = document.createElement("div");
-      div.className = "card element";
-
-      div.innerHTML = `
-        <strong>${type.charAt(0).toUpperCase() + type.slice(1)} ${index + 1}</strong>
+  ["raam","deur","poort"].forEach(type => {
+    project.elementen.filter(e => e.type === type)
+    .forEach((el,i) => {
+      const d = document.createElement("div");
+      d.className = "card element";
+      d.innerHTML = `
+        <strong>${type[0].toUpperCase()+type.slice(1)} ${i+1}</strong>
 
         <label>Breedte (mm)</label>
         <input type="number" value="${el.breedte}"
@@ -218,41 +183,36 @@ function render() {
         <input type="number" value="${el.hoogte}"
           oninput="updateValue('${el.id}','hoogte',this.value)">
 
-        <label>Foto toevoegen</label>
+        <label>Foto’s toevoegen</label>
         <input type="file" accept="image/*" capture="environment"
-          onchange="addPhoto('${el.id}', this)">
+          multiple
+          onchange="addPhotos('${el.id}', this)">
 
         <div class="fotos">
-          ${el.fotos.map((f, i) => `
-            <div class="foto-wrapper">
+          ${el.fotos.map((f,idx)=>`
+            <div class="foto">
               <img src="${f}">
-              <button onclick="removePhoto('${el.id}', ${i})">×</button>
-            </div>
-          `).join("")}
+              <button onclick="removePhoto('${el.id}',${idx})">×</button>
+            </div>`).join("")}
         </div>
 
-        <button class="remove"
-          onclick="removeElement('${el.id}')">
+        <button class="remove" onclick="removeElement('${el.id}')">
           Element verwijderen
         </button>
       `;
-
-      container.appendChild(div);
+      c.appendChild(d);
     });
   });
 }
 
-/* =========================
-   INIT
-========================= */
-klantNaam.addEventListener("input", e => {
+/* ===== Init ===== */
+klantNaam.addEventListener("input", e=>{
   project.klantNaam = e.target.value;
   save();
 });
-
-load();
-render();
+load(); render();
 </script>
 
 </body>
 </html>
+
