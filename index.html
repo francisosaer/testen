@@ -45,7 +45,7 @@ body {
   padding: 15px;
 }
 
-/* NIEUW PROJECT & PDF */
+/* KNOPPEN */
 .new-project {
   background: white;
   color: var(--primary);
@@ -217,7 +217,8 @@ canvas { display: none; }
 <div class="container">
 
 <button class="new-project" onclick="newProject()">Nieuw project starten</button>
-<button class="new-project" onclick="generatePDFAndMail()">Project als PDF & Mail</button>
+<button class="new-project" onclick="generatePDF()">PDF downloaden</button>
+<button class="new-project" onclick="openMail()">Mailen</button>
 
 <div class="card">
   <label>Klantnaam</label>
@@ -390,31 +391,26 @@ klantNaam.addEventListener("input",e=>{
   save();
 });
 
-// === PDF + MAIL FUNCTIE ===
-async function generatePDFAndMail() {
-
+// === PDF FUNCTIE (alleen downloaden) ===
+async function generatePDF() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
 
-  const bedrijfKleur = [15, 36, 65];
+  const bedrijfKleur = [15,36,65];
   let y = 20;
   let pageNumber = 1;
 
   const logo = new Image();
   logo.src = "Logordb.png";
-
   await new Promise(resolve => { logo.onload = resolve; });
 
   doc.addImage(logo, "PNG", 15, 10, 35, 15);
-
   doc.setFontSize(18);
   doc.setTextColor(...bedrijfKleur);
   doc.text("Nieuwe Opmeting", 60, 20);
-
   y = 35;
 
   const today = new Date().toLocaleDateString();
-
   doc.setFontSize(11);
   doc.setTextColor(0,0,0);
   doc.text("Klant: " + project.klantNaam, 15, y);
@@ -426,54 +422,38 @@ async function generatePDFAndMail() {
   y += 10;
 
   for (const el of project.elementen) {
-
-    if (y > 250) { addFooter(doc, pageNumber++); doc.addPage(); y = 20; }
-
-    doc.setFontSize(13);
-    doc.setTextColor(...bedrijfKleur);
-    doc.text(`${el.type.toUpperCase()} ${el.nummer} - ${el.kamer}`, 15, y);
-    y += 7;
-
-    doc.setFontSize(11);
-    doc.setTextColor(0,0,0);
-    doc.text(`Breedte: ${el.breedte || "-"} cm`, 20, y);
-    y += 6;
-    doc.text(`Hoogte: ${el.hoogte || "-"} cm`, 20, y);
-    y += 6;
-
-    if (el.notitie) { doc.text(`Notities: ${el.notitie}`, 20, y); y += 6; }
-
-    y += 4;
-
-    for (const foto of el.fotos) {
-      if (y > 220) { addFooter(doc, pageNumber++); doc.addPage(); y = 20; }
-      doc.addImage(foto, "JPEG", 20, y, 80, 60);
-      y += 65;
+    if(y > 250){ addFooter(doc, pageNumber++); doc.addPage(); y=20; }
+    doc.setFontSize(13); doc.setTextColor(...bedrijfKleur);
+    doc.text(`${el.type.toUpperCase()} ${el.nummer} - ${el.kamer}`, 15, y); y+=7;
+    doc.setFontSize(11); doc.setTextColor(0,0,0);
+    doc.text(`Breedte: ${el.breedte || "-"} cm`, 20, y); y+=6;
+    doc.text(`Hoogte: ${el.hoogte || "-"} cm`, 20, y); y+=6;
+    if(el.notitie){ doc.text(`Notities: ${el.notitie}`, 20, y); y+=6; }
+    y+=4;
+    for(const foto of el.fotos){
+      if(y>220){ addFooter(doc, pageNumber++); doc.addPage(); y=20; }
+      doc.addImage(foto,"JPEG",20,y,80,60); y+=65;
     }
-
     doc.setDrawColor(200);
-    doc.line(15, y, 195, y);
-    y += 8;
+    doc.line(15,y,195,y); y+=8;
   }
+  addFooter(doc,pageNumber);
+  doc.save("Opmeting_" + project.klantNaam + ".pdf");
+}
 
-  addFooter(doc, pageNumber);
-
-  const fileName = "Opmeting_" + project.klantNaam + ".pdf";
-
-  doc.save(fileName);
-
+// === MAIL FUNCTIE ===
+function openMail() {
   const subject = encodeURIComponent("Nieuwe Opmeting - " + project.klantNaam);
   const body = encodeURIComponent(
     "Beste,\n\nIn bijlage vindt u de opmeting van project: " + project.klantNaam + ".\n\nMet vriendelijke groeten"
   );
-
   window.location.href = `mailto:?subject=${subject}&body=${body}`;
 }
 
-function addFooter(doc, pageNumber) {
+function addFooter(doc,pageNumber){
   doc.setFontSize(9);
   doc.setTextColor(150);
-  doc.text("Pagina " + pageNumber, 180, 290);
+  doc.text("Pagina " + pageNumber,180,290);
 }
 
 load();
@@ -482,3 +462,4 @@ render();
 
 </body>
 </html>
+
