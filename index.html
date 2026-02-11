@@ -6,95 +6,146 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
+:root {
+  --primary: rgba(15, 36, 65, 1);
+  --light-bg: #eef1f4;
+  --card-bg: #ffffff;
+  --border-light: #dcdcdc;
+}
+
 body {
-  font-family: Arial, sans-serif;
-  padding: 1rem;
-  background: #f4f4f4;
+  margin: 0;
+  font-family: "Segoe UI", Arial, sans-serif;
+  background: var(--light-bg);
+  color: #222;
 }
 
-/* LOGO */
-.logo {
+/* HEADER */
+.header {
+  background: var(--primary);
+  padding: 18px 15px;
   text-align: center;
-  margin-bottom: 15px;
-}
-.logo img {
-  max-width: 110px;
-  opacity: 0.85;
 }
 
-/* TITEL */
-h1 {
-  text-align: center;
-  margin-bottom: 5px;
+.header img {
+  max-width: 75px;  /* kleiner logo */
+  opacity: 0.9;
+}
+
+.header h1 {
+  color: white;
+  margin: 10px 0 0 0;
+  font-weight: 500;
+  font-size: 20px;
+}
+
+/* CONTAINER */
+.container {
+  padding: 15px;
 }
 
 /* NIEUW PROJECT */
 .new-project {
-  display: block;
-  width: 100%;
-  background: #0275d8;
-  color: white;
-  border: none;
-  padding: .6rem;
-  border-radius: 6px;
-  margin-bottom: 20px;
-  font-size: 16px;
-  cursor: pointer;
-}
-
-/* KAART */
-.card {
   background: white;
-  padding: 1rem;
-  border-radius: 6px;
-  margin-bottom: 1rem;
+  color: var(--primary);
+  border: 1px solid var(--primary);
+  padding: 8px 14px;
+  border-radius: 5px;
+  font-size: 14px;
+  cursor: pointer;
+  margin-bottom: 20px;
 }
 
+.new-project:hover {
+  background: var(--primary);
+  color: white;
+}
+
+/* CARD */
+.card {
+  background: var(--card-bg);
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 18px;
+  border: 1px solid var(--border-light);
+}
+
+/* ELEMENT CARD */
+.element {
+  border-left: 4px solid var(--primary);
+  box-shadow: 0 3px 6px rgba(0,0,0,0.05);
+}
+
+/* LABELS */
 label {
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 12px;
   display: block;
-  margin-top: .75rem;
-  font-weight: bold;
 }
 
-input, select, textarea, button {
+input, select, textarea {
   width: 100%;
-  padding: .5rem;
-  margin-top: .25rem;
+  padding: 7px;
+  margin-top: 5px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
   font-size: 14px;
 }
 
 textarea {
   resize: vertical;
-  min-height: 70px;
+  min-height: 60px;
 }
 
-/* Breedte/hoogte naast elkaar */
+/* DIMENSIONS */
 .dimensions {
   display: flex;
   gap: 10px;
-  margin-top: .5rem;
 }
 
 .dimensions div {
   flex: 1;
 }
 
-/* ELEMENT STYLING */
-.element {
-  border-left: 6px solid #0275d8;
-  background: #fafafa;
-  padding: 1rem;
-  border-radius: 8px;
-  margin-top: 1.5rem;
-  box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+/* BUTTONS */
+button {
+  cursor: pointer;
+  border-radius: 5px;
+  font-size: 14px;
+}
+
+.action-btn {
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  margin-top: 12px;
+}
+
+.action-btn:hover {
+  opacity: 0.9;
+}
+
+.remove-btn {
+  background: transparent;
+  border: 1px solid #b02a37;
+  color: #b02a37;
+  margin-top: 12px;
+  padding: 6px 10px;
+}
+
+.remove-btn:hover {
+  background: #b02a37;
+  color: white;
 }
 
 /* FOTO GRID */
 .fotos {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-  gap: .5rem;
-  margin-top: .75rem;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 8px;
+  margin-top: 10px;
 }
 
 .foto {
@@ -103,49 +154,66 @@ textarea {
 
 .foto img {
   width: 100%;
-  border-radius: 4px;
+  border-radius: 5px;
   border: 1px solid #ccc;
 }
 
 .foto button {
   position: absolute;
-  top: 2px;
-  right: 2px;
-  background: #d9534f;
+  top: 4px;
+  right: 4px;
+  background: rgba(0,0,0,0.6);
   color: white;
   border: none;
   border-radius: 50%;
-  width: 24px;
-  height: 24px;
-  font-weight: bold;
-  cursor: pointer;
+  width: 22px;
+  height: 22px;
+  font-size: 12px;
 }
 
-.remove {
-  background: #d9534f;
-  color: white;
-  border: none;
-  margin-top: .75rem;
-  cursor: pointer;
+/* CAMERA MODAL */
+#cameraModal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,.9);
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  z-index: 9999;
 }
-
-canvas { display:none; }
 
 video {
-  width: 100%;
-  max-height: 300px;
-  border-radius: 6px;
-  margin-top: .5rem;
+  width: 90%;
+  max-height: 320px;
+  border-radius: 8px;
+}
+
+canvas { display: none; }
+
+.element-title {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.element-sub {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 10px;
 }
 </style>
 </head>
 <body>
 
-<div class="logo">
+<div class="header">
   <img src="Logordb.png" alt="Logo">
+  <h1>Nieuwe opmeting</h1>
 </div>
 
-<h1>Nieuwe opmeting</h1>
+<div class="container">
 
 <button class="new-project" onclick="newProject()">Nieuw project starten</button>
 
@@ -177,16 +245,18 @@ video {
     <option value="poort">Poort</option>
   </select>
 
-  <button onclick="addElement()">Toevoegen</button>
+  <button class="action-btn" onclick="addElement()">Toevoegen</button>
 </div>
 
 <div id="elementen"></div>
 
-<!-- Camera modal -->
-<div id="cameraModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.9);justify-content:center;align-items:center;flex-direction:column;z-index:9999;">
+</div>
+
+<!-- CAMERA -->
+<div id="cameraModal">
   <video id="video" autoplay></video>
-  <button onclick="takePhoto()" style="margin-top:1rem;">Foto maken</button>
-  <button onclick="closeCamera()" style="margin-top:.5rem;">Annuleren</button>
+  <button class="action-btn" onclick="takePhoto()">Foto maken</button>
+  <button class="remove-btn" onclick="closeCamera()">Annuleren</button>
 </div>
 
 <canvas id="canvas"></canvas>
@@ -197,37 +267,26 @@ let project = { klantNaam:"", elementen:[] };
 let currentElementId = null;
 let stream = null;
 
-function save(){
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(project));
-}
-
-function load(){
-  const d = localStorage.getItem(STORAGE_KEY);
-  if(d) project = JSON.parse(d);
-}
-
-function uuid(){
-  return crypto.randomUUID();
-}
+function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(project)); }
+function load(){ const d = localStorage.getItem(STORAGE_KEY); if(d) project = JSON.parse(d); }
+function uuid(){ return crypto.randomUUID(); }
 
 function addElement(){
   const kamer = kamerType.value;
   const type = elementType.value;
 
   const bestaande = project.elementen.filter(e => e.type === type);
-  const nextNummer = bestaande.length > 0 
-    ? Math.max(...bestaande.map(e => e.nummer)) + 1 
-    : 1;
+  const nextNummer = bestaande.length ? Math.max(...bestaande.map(e=>e.nummer))+1 : 1;
 
   project.elementen.push({
     id: uuid(),
     type,
     kamer,
     nummer: nextNummer,
-    breedte: "",
-    hoogte: "",
-    notitie: "",
-    fotos: []
+    breedte:"",
+    hoogte:"",
+    notitie:"",
+    fotos:[]
   });
 
   save();
@@ -235,102 +294,74 @@ function addElement(){
 }
 
 function removeElement(id){
-  project.elementen = project.elementen.filter(e => e.id !== id);
+  project.elementen = project.elementen.filter(e=>e.id!==id);
   save();
   render();
 }
 
-function updateValue(id, field, value){
-  project.elementen.find(e => e.id === id)[field] = value;
+function updateValue(id,field,value){
+  project.elementen.find(e=>e.id===id)[field]=value;
   save();
 }
 
 /* CAMERA */
 function openCamera(id){
-  currentElementId = id;
-  cameraModal.style.display = "flex";
-
-  navigator.mediaDevices.getUserMedia({
-    video: { facingMode: { ideal: "environment" } }
-  })
-  .then(s => {
-    stream = s;
-    video.srcObject = s;
-  })
-  .catch(() => alert("Camera niet beschikbaar"));
+  currentElementId=id;
+  cameraModal.style.display="flex";
+  navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}}})
+  .then(s=>{stream=s;video.srcObject=s;})
+  .catch(()=>alert("Camera niet beschikbaar"));
 }
 
 function closeCamera(){
-  cameraModal.style.display = "none";
-  if(stream){
-    stream.getTracks().forEach(t => t.stop());
-    stream = null;
-  }
+  cameraModal.style.display="none";
+  if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
 }
 
 function takePhoto(){
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
+  canvas.width=video.videoWidth;
+  canvas.height=video.videoHeight;
   canvas.getContext("2d").drawImage(video,0,0);
-
-  const data = canvas.toDataURL("image/jpeg", 0.7);
-
-  project.elementen
-    .find(e => e.id === currentElementId)
-    .fotos.push(data);
-
-  save();
-  render();
-  closeCamera();
+  const data=canvas.toDataURL("image/jpeg",0.7);
+  project.elementen.find(e=>e.id===currentElementId).fotos.push(data);
+  save(); render(); closeCamera();
 }
 
 function newProject(){
   if(!confirm("Nieuw project starten? Alles wordt gewist.")) return;
   localStorage.removeItem(STORAGE_KEY);
-  project = { klantNaam:"", elementen:[] };
+  project={klantNaam:"",elementen:[]};
   render();
 }
 
 function render(){
-  klantNaam.value = project.klantNaam;
-  const container = document.getElementById("elementen");
-  container.innerHTML = "";
+  klantNaam.value=project.klantNaam;
+  const container=document.getElementById("elementen");
+  container.innerHTML="";
 
-  project.elementen.slice().reverse().forEach(el => {
+  project.elementen.slice().reverse().forEach(el=>{
+    const d=document.createElement("div");
+    d.className="card element";
 
-    const d = document.createElement("div");
-    d.className = "card element";
-
-    d.innerHTML = `
-      <div style="font-size:18px;font-weight:bold;margin-bottom:5px;">
-        ${el.type.charAt(0).toUpperCase()+el.type.slice(1)} ${el.nummer}
-      </div>
-      <div style="color:#666;font-size:14px;margin-bottom:10px;">
-        Locatie: ${el.kamer}
-      </div>
+    d.innerHTML=`
+      <div class="element-title">${el.type.charAt(0).toUpperCase()+el.type.slice(1)} ${el.nummer}</div>
+      <div class="element-sub">Locatie: ${el.kamer}</div>
 
       <div class="dimensions">
         <div>
           <label>Breedte (cm)</label>
-          <input type="number" value="${el.breedte}" 
-            oninput="updateValue('${el.id}','breedte',this.value)">
+          <input type="number" value="${el.breedte}" oninput="updateValue('${el.id}','breedte',this.value)">
         </div>
         <div>
           <label>Hoogte (cm)</label>
-          <input type="number" value="${el.hoogte}" 
-            oninput="updateValue('${el.id}','hoogte',this.value)">
+          <input type="number" value="${el.hoogte}" oninput="updateValue('${el.id}','hoogte',this.value)">
         </div>
       </div>
 
       <label>Extra notities</label>
-      <textarea 
-        oninput="updateValue('${el.id}','notitie',this.value)">
-        ${el.notitie}
-      </textarea>
+      <textarea oninput="updateValue('${el.id}','notitie',this.value)">${el.notitie}</textarea>
 
-      <button onclick="openCamera('${el.id}')">
-        Camera openen
-      </button>
+      <button class="action-btn" onclick="openCamera('${el.id}')">Camera openen</button>
 
       <div class="fotos">
         ${el.fotos.map((f,i)=>`
@@ -339,24 +370,21 @@ function render(){
             <button onclick="
               project.elementen.find(e=>e.id==='${el.id}')
               .fotos.splice(${i},1);
-              save();
-              render();
+              save(); render();
             ">×</button>
           </div>
         `).join("")}
       </div>
 
-      <button class="remove" onclick="removeElement('${el.id}')">
-        Element verwijderen
-      </button>
+      <button class="remove-btn" onclick="removeElement('${el.id}')">Element verwijderen</button>
     `;
 
     container.appendChild(d);
   });
 }
 
-klantNaam.addEventListener("input", e => {
-  project.klantNaam = e.target.value;
+klantNaam.addEventListener("input",e=>{
+  project.klantNaam=e.target.value;
   save();
 });
 
@@ -366,3 +394,5 @@ render();
 
 </body>
 </html>
+
+
