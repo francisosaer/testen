@@ -2,16 +2,17 @@
 <html lang="nl">
 <head>
 <meta charset="UTF-8">
-<title>Opmeting PWA</title>
+<title>Nieuwe opmeting</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
 body { font-family: Arial,sans-serif; padding:1rem; background:#f4f4f4; }
 h1 { display:flex; justify-content:space-between; align-items:center; }
 .card { background:white; padding:1rem; border-radius:6px; margin-bottom:1rem; }
-label { display:block; margin-top:.5rem; }
-input, select, button { width:100%; padding:.5rem; margin-top:.25rem; }
+label { display:block; margin-top:.75rem; font-weight:bold; }
+input, select, textarea, button { width:100%; padding:.5rem; margin-top:.25rem; }
+textarea { resize:vertical; min-height:70px; }
 button { cursor:pointer; }
-.element { border:1px solid #ddd; padding:.75rem; border-radius:4px; margin-top:.75rem; }
+.element { border:1px solid #ddd; padding:.75rem; border-radius:6px; margin-top:.75rem; }
 .fotos { display:grid; grid-template-columns: repeat(auto-fill,minmax(100px,1fr)); gap:.5rem; margin-top:.75rem; }
 .foto { position:relative; }
 .foto img { width:100%; border-radius:4px; border:1px solid #ccc; }
@@ -20,12 +21,13 @@ button { cursor:pointer; }
 .new-project { background:#0275d8; color:white; border:none; padding:.5rem 1rem; border-radius:4px; }
 canvas { display:none; }
 video { width:100%; max-height:300px; border-radius:6px; margin-top:.5rem; }
+.section-title { font-size:1.1rem; font-weight:bold; margin-bottom:.5rem; }
 </style>
 </head>
 <body>
 
 <h1>
-  Opmeting PWA
+  Nieuwe opmeting
   <button class="new-project" onclick="newProject()">Nieuw project</button>
 </h1>
 
@@ -35,13 +37,7 @@ video { width:100%; max-height:300px; border-radius:6px; margin-top:.5rem; }
 </div>
 
 <div class="card">
-  <label>Nieuw element</label>
-  <select id="elementType">
-    <option value="raam">Raam</option>
-    <option value="deur">Deur</option>
-    <option value="poort">Poort</option>
-  </select>
-  <label>Kamer</label>
+  <div class="section-title">Kamer kiezen</div>
   <select id="kamerType">
     <option value="slaapkamer1">Slaapkamer 1</option>
     <option value="slaapkamer2">Slaapkamer 2</option>
@@ -55,6 +51,14 @@ video { width:100%; max-height:300px; border-radius:6px; margin-top:.5rem; }
     <option value="zolder">Zolder</option>
     <option value="garage">Garage</option>
   </select>
+
+  <div class="section-title" style="margin-top:1rem;">Kies element</div>
+  <select id="elementType">
+    <option value="raam">Raam</option>
+    <option value="deur">Deur</option>
+    <option value="poort">Poort</option>
+  </select>
+
   <button onclick="addElement()">Toevoegen</button>
 </div>
 
@@ -63,121 +67,125 @@ video { width:100%; max-height:300px; border-radius:6px; margin-top:.5rem; }
 <!-- Camera modal -->
 <div id="cameraModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.9);justify-content:center;align-items:center;flex-direction:column;z-index:9999;">
   <video id="video" autoplay></video>
-  <button onclick="takePhoto()" style="margin-top:1rem;padding:.5rem 1rem;">Foto maken</button>
-  <button onclick="closeCamera()" style="margin-top:.5rem;padding:.5rem 1rem;">Annuleren</button>
+  <button onclick="takePhoto()" style="margin-top:1rem;">Foto maken</button>
+  <button onclick="closeCamera()" style="margin-top:.5rem;">Annuleren</button>
 </div>
 
 <canvas id="canvas"></canvas>
 
 <script>
-/* ===== DATA ===== */
 const STORAGE_KEY = "opmeting_pwa";
 let project = { klantNaam:"", elementen:[] };
 let currentElementId = null;
 let stream = null;
 
-/* ===== STORAGE ===== */
-function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(project)); }
-function load() { const d=localStorage.getItem(STORAGE_KEY); if(d) project=JSON.parse(d); }
-function uuid() { return crypto.randomUUID(); }
+function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(project)); }
+function load(){ const d=localStorage.getItem(STORAGE_KEY); if(d) project=JSON.parse(d); }
+function uuid(){ return crypto.randomUUID(); }
 
-/* ===== ELEMENTEN ===== */
-function addElement() {
-  const kamer = document.getElementById("kamerType").value;
+function addElement(){
+  const kamer = kamerType.value;
   const type = elementType.value;
 
-  // bepaal het volgende nummer voor dit type
   const bestaande = project.elementen.filter(e => e.type === type);
-  const nextNummer = bestaande.length > 0 ? Math.max(...bestaande.map(e=>e.nummer)) + 1 : 1;
+  const nextNummer = bestaande.length>0 ? Math.max(...bestaande.map(e=>e.nummer))+1 : 1;
 
   project.elementen.push({
     id: uuid(),
-    type: type,
-    kamer: kamer,
-    nummer: nextNummer, // vaste nummering
-    breedte: "",
-    hoogte: "",
-    fotos: []
+    type,
+    kamer,
+    nummer: nextNummer,
+    breedte:"",
+    hoogte:"",
+    notitie:"",
+    fotos:[]
   });
+
   save(); render();
 }
 
-function removeElement(id) { project.elementen = project.elementen.filter(e=>e.id!==id); save(); render(); }
-function updateValue(id,field,value) { project.elementen.find(e=>e.id===id)[field]=value; save(); }
-
-/* ===== CAMERA ===== */
-function openCamera(elementId){
-  currentElementId = elementId;
-  document.getElementById('cameraModal').style.display='flex';
-  const video = document.getElementById('video');
-
-  // Achtercamera eerst proberen
-  navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: "environment" } } })
-    .then(s => { stream = s; video.srcObject = stream; })
-    .catch(err => {
-      navigator.mediaDevices.getUserMedia({ video:true })
-        .then(s => { stream = s; video.srcObject = stream; })
-        .catch(err2 => { alert("Camera niet beschikbaar: "+err2); closeCamera(); });
-    });
+function removeElement(id){
+  project.elementen = project.elementen.filter(e=>e.id!==id);
+  save(); render();
 }
 
-function closeCamera(){
-  document.getElementById('cameraModal').style.display='none';
-  if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; }
+function updateValue(id,field,value){
+  project.elementen.find(e=>e.id===id)[field]=value;
+  save();
 }
 
-function takePhoto(){
-  const video = document.getElementById('video');
-  const canvas = document.getElementById('canvas');
-  canvas.width=video.videoWidth; canvas.height=video.videoHeight;
-  canvas.getContext('2d').drawImage(video,0,0,canvas.width,canvas.height);
-  const dataUrl = canvas.toDataURL('image/jpeg',0.7);
-  project.elementen.find(e=>e.id===currentElementId).fotos.push(dataUrl);
-  save(); render(); closeCamera();
-}
-
-/* ===== NIEUW PROJECT ===== */
-function newProject(){
-  if(!confirm("Nieuw project starten? Alles wordt gewist.")) return;
-  localStorage.removeItem(STORAGE_KEY);
-  project={ klantNaam:"",elementen:[] };
-  render();
-}
-
-/* ===== RENDER ===== */
-function render(){
-  klantNaam.value = project.klantNaam;
-  const c=document.getElementById("elementen");
-  c.innerHTML="";
-
-  // globale lijst, nieuwste element bovenaan
-  const reversedElements = project.elementen.slice().reverse();
-
-  reversedElements.forEach(el => {
-    const d = document.createElement("div");
-    d.className="card element";
-    d.innerHTML=`
-      <strong>${el.type[0].toUpperCase()+el.type.slice(1)} ${el.nummer} - ${el.kamer}</strong>
-      <label>Breedte (mm)</label>
-      <input type="number" value="${el.breedte}" oninput="updateValue('${el.id}','breedte',this.value)">
-      <label>Hoogte (mm)</label>
-      <input type="number" value="${el.hoogte}" oninput="updateValue('${el.id}','hoogte',this.value)">
-      <button onclick="openCamera('${el.id}')">Camera openen</button>
-      <div class="fotos">
-        ${el.fotos.map((f,idx)=>`
-          <div class="foto">
-            <img src="${f}">
-            <button onclick="project.elementen.find(e=>e.id==='${el.id}').fotos.splice(${idx},1); save(); render();">×</button>
-          </div>`).join("")}
-      </div>
-      <button class="remove" onclick="removeElement('${el.id}')">Element verwijderen</button>
-    `;
-    c.appendChild(d);
+/* CAMERA */
+function openCamera(id){
+  currentElementId=id;
+  cameraModal.style.display="flex";
+  navigator.mediaDevices.getUserMedia({video:{facingMode:{exact:"environment"}}})
+  .then(s=>{stream=s;video.srcObject=s;})
+  .catch(()=>{
+    navigator.mediaDevices.getUserMedia({video:true})
+    .then(s=>{stream=s;video.srcObject=s;})
+    .catch(err=>{alert("Camera niet beschikbaar");closeCamera();});
   });
 }
 
-/* ===== INIT ===== */
-klantNaam.addEventListener("input", e=>{project.klantNaam=e.target.value; save();});
+function closeCamera(){
+  cameraModal.style.display="none";
+  if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
+}
+
+function takePhoto(){
+  canvas.width=video.videoWidth;
+  canvas.height=video.videoHeight;
+  canvas.getContext("2d").drawImage(video,0,0);
+  const data=canvas.toDataURL("image/jpeg",0.7);
+  project.elementen.find(e=>e.id===currentElementId).fotos.push(data);
+  save(); render(); closeCamera();
+}
+
+function newProject(){
+  if(!confirm("Nieuw project starten? Alles wordt gewist.")) return;
+  localStorage.removeItem(STORAGE_KEY);
+  project={klantNaam:"",elementen:[]};
+  render();
+}
+
+function render(){
+  klantNaam.value=project.klantNaam;
+  const container=document.getElementById("elementen");
+  container.innerHTML="";
+
+  project.elementen.slice().reverse().forEach(el=>{
+    const d=document.createElement("div");
+    d.className="card element";
+    d.innerHTML=`
+      <strong>${el.type.charAt(0).toUpperCase()+el.type.slice(1)} ${el.nummer} - ${el.kamer}</strong>
+      
+      <label>Breedte (mm)</label>
+      <input type="number" value="${el.breedte}" oninput="updateValue('${el.id}','breedte',this.value)">
+      
+      <label>Hoogte (mm)</label>
+      <input type="number" value="${el.hoogte}" oninput="updateValue('${el.id}','hoogte',this.value)">
+      
+      <label>Extra notities</label>
+      <textarea oninput="updateValue('${el.id}','notitie',this.value)">${el.notitie}</textarea>
+      
+      <button onclick="openCamera('${el.id}')">Camera openen</button>
+      
+      <div class="fotos">
+        ${el.fotos.map((f,i)=>`
+          <div class="foto">
+            <img src="${f}">
+            <button onclick="project.elementen.find(e=>e.id==='${el.id}').fotos.splice(${i},1); save(); render();">×</button>
+          </div>
+        `).join("")}
+      </div>
+      
+      <button class="remove" onclick="removeElement('${el.id}')">Element verwijderen</button>
+    `;
+    container.appendChild(d);
+  });
+}
+
+klantNaam.addEventListener("input",e=>{project.klantNaam=e.target.value;save();});
 load(); render();
 </script>
 
