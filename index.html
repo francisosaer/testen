@@ -254,6 +254,7 @@ async function openCamera(id){
     }catch(err){alert("Camera niet beschikbaar");}
 }
 
+// ✅ Foto nemen: sluit camera eerst, daarna overzicht renderen met kleine vertraging
 function takePhoto(){
     const ctx=canvas.getContext("2d");
     canvas.width=video.videoWidth;
@@ -261,8 +262,14 @@ function takePhoto(){
     ctx.drawImage(video,0,0);
     const data = canvas.toDataURL("image/jpeg",0.6);
     fotosMemory[currentElementId].push(data);
-    render();       // direct overzicht tonen
-    closeCamera();   // camera automatisch sluiten
+
+    // Camera sluiten eerst
+    closeCamera();
+
+    // Licht vertraging zodat DOM update en foto direct zichtbaar is
+    setTimeout(() => {
+        render();
+    }, 150);
 }
 
 function closeCamera(){
@@ -292,6 +299,7 @@ function maakPDF(){
     doc.save("Opmeting.pdf");
 }
 
+// Waarschuwing bij refresh als er foto’s aanwezig zijn
 window.addEventListener("beforeunload", function(e){
     let hasFotos = Object.values(fotosMemory).some(arr=>arr.length>0);
     if(hasFotos){
@@ -310,5 +318,7 @@ render();
 </script>
 </body>
 </html>
+
+
 
 
