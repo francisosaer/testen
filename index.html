@@ -175,18 +175,17 @@ video {
 }
 
 #cameraModal .action-btn {
-  bottom: 60px;
+  bottom: 70px;
   left: 50%;
   transform: translateX(-50%);
 }
 
 #cameraModal .remove-btn {
-  bottom: 20px;
+  bottom: 25px;
   left: 50%;
   transform: translateX(-50%);
 }
 
-/* BELANGRIJK: Canvas verbergen */
 canvas {
   display: none;
 }
@@ -241,7 +240,7 @@ canvas {
 </div>
 
 <div id="cameraModal">
-  <video id="video" autoplay></video>
+  <video id="video" autoplay playsinline></video>
   <button class="action-btn" onclick="takePhoto()">Foto maken</button>
   <button class="remove-btn" onclick="closeCamera()">Annuleren</button>
 </div>
@@ -283,26 +282,64 @@ function updateValue(id,field,value){
   save();
 }
 
-function openCamera(id){
+async function openCamera(id){
   currentElementId=id;
   cameraModal.style.display="flex";
-  navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}}})
-  .then(s=>{stream=s;video.srcObject=s;})
-  .catch(()=>alert("Camera niet beschikbaar"));
+
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:{ideal:"environment"}}
+    });
+
+    video.srcObject=stream;
+
+    await new Promise(resolve=>{
+      video.onloadedmetadata=()=>{
+        video.play();
+        resolve();
+      };
+    });
+
+  }catch(err){
+    alert("Camera niet beschikbaar");
+  }
 }
 
 function closeCamera(){
   cameraModal.style.display="none";
-  if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
+  if(stream){
+    stream.getTracks().forEach(track=>track.stop());
+    stream=null;
+  }
+  video.srcObject=null;
 }
 
 function takePhoto(){
+
+  if(!video.videoWidth || !video.videoHeight){
+    alert("Camera nog niet klaar. Probeer opnieuw.");
+    return;
+  }
+
   canvas.width=video.videoWidth;
   canvas.height=video.videoHeight;
-  canvas.getContext("2d").drawImage(video,0,0);
+
+  const ctx=canvas.getContext("2d");
+  ctx.drawImage(video,0,0);
+
   const data=canvas.toDataURL("image/jpeg",0.7);
-  project.elementen.find(e=>e.id===currentElementId).fotos.push(data);
-  save();render();closeCamera();
+
+  const element=project.elementen.find(e=>e.id===currentElementId);
+  if(!element){
+    alert("Element niet gevonden.");
+    return;
+  }
+
+  element.fotos.push(data);
+
+  save();
+  render();
+  closeCamera();
 }
 
 function newProject(){
@@ -316,6 +353,7 @@ function render(){
   klantNaam.value=project.klantNaam;
   const container=document.getElementById("elementen");
   container.innerHTML="";
+
   project.elementen.slice().reverse().forEach(el=>{
     const d=document.createElement("div");
     d.className="card element";
@@ -357,8 +395,10 @@ function openMail(){
   window.location.href=`mailto:?subject=${subject}&body=${body}`;
 }
 
-load();render();
+load();
+render();
 </script>
 
 </body>
 </html>
+
