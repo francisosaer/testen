@@ -4,10 +4,11 @@
 <meta charset="UTF-8">
 <title>Nieuwe opmeting</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
 :root {
-  --primary: rgba(15, 36, 65, 1);
+  --primary: rgba(15,36,65,1);
   --light-bg: #eef1f4;
   --card-bg: #ffffff;
   --border-light: #dcdcdc;
@@ -28,7 +29,7 @@ body {
 }
 
 .header img {
-  max-width: 75px;  /* kleiner logo */
+  max-width: 60px;
   opacity: 0.9;
 }
 
@@ -44,7 +45,7 @@ body {
   padding: 15px;
 }
 
-/* NIEUW PROJECT */
+/* NIEUW PROJECT & PDF */
 .new-project {
   background: white;
   color: var(--primary);
@@ -53,7 +54,7 @@ body {
   border-radius: 5px;
   font-size: 14px;
   cursor: pointer;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 }
 
 .new-project:hover {
@@ -216,6 +217,7 @@ canvas { display: none; }
 <div class="container">
 
 <button class="new-project" onclick="newProject()">Nieuw project starten</button>
+<button class="new-project" onclick="generatePDFAndMail()">Project als PDF & Mail</button>
 
 <div class="card">
   <label>Klantnaam</label>
@@ -388,11 +390,95 @@ klantNaam.addEventListener("input",e=>{
   save();
 });
 
+// === PDF + MAIL FUNCTIE ===
+async function generatePDFAndMail() {
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  const bedrijfKleur = [15, 36, 65];
+  let y = 20;
+  let pageNumber = 1;
+
+  const logo = new Image();
+  logo.src = "Logordb.png";
+
+  await new Promise(resolve => { logo.onload = resolve; });
+
+  doc.addImage(logo, "PNG", 15, 10, 35, 15);
+
+  doc.setFontSize(18);
+  doc.setTextColor(...bedrijfKleur);
+  doc.text("Nieuwe Opmeting", 60, 20);
+
+  y = 35;
+
+  const today = new Date().toLocaleDateString();
+
+  doc.setFontSize(11);
+  doc.setTextColor(0,0,0);
+  doc.text("Klant: " + project.klantNaam, 15, y);
+  doc.text("Datum: " + today, 140, y);
+  y += 10;
+
+  doc.setDrawColor(...bedrijfKleur);
+  doc.line(15, y, 195, y);
+  y += 10;
+
+  for (const el of project.elementen) {
+
+    if (y > 250) { addFooter(doc, pageNumber++); doc.addPage(); y = 20; }
+
+    doc.setFontSize(13);
+    doc.setTextColor(...bedrijfKleur);
+    doc.text(`${el.type.toUpperCase()} ${el.nummer} - ${el.kamer}`, 15, y);
+    y += 7;
+
+    doc.setFontSize(11);
+    doc.setTextColor(0,0,0);
+    doc.text(`Breedte: ${el.breedte || "-"} cm`, 20, y);
+    y += 6;
+    doc.text(`Hoogte: ${el.hoogte || "-"} cm`, 20, y);
+    y += 6;
+
+    if (el.notitie) { doc.text(`Notities: ${el.notitie}`, 20, y); y += 6; }
+
+    y += 4;
+
+    for (const foto of el.fotos) {
+      if (y > 220) { addFooter(doc, pageNumber++); doc.addPage(); y = 20; }
+      doc.addImage(foto, "JPEG", 20, y, 80, 60);
+      y += 65;
+    }
+
+    doc.setDrawColor(200);
+    doc.line(15, y, 195, y);
+    y += 8;
+  }
+
+  addFooter(doc, pageNumber);
+
+  const fileName = "Opmeting_" + project.klantNaam + ".pdf";
+
+  doc.save(fileName);
+
+  const subject = encodeURIComponent("Nieuwe Opmeting - " + project.klantNaam);
+  const body = encodeURIComponent(
+    "Beste,\n\nIn bijlage vindt u de opmeting van project: " + project.klantNaam + ".\n\nMet vriendelijke groeten"
+  );
+
+  window.location.href = `mailto:?subject=${subject}&body=${body}`;
+}
+
+function addFooter(doc, pageNumber) {
+  doc.setFontSize(9);
+  doc.setTextColor(150);
+  doc.text("Pagina " + pageNumber, 180, 290);
+}
+
 load();
 render();
 </script>
 
 </body>
 </html>
-
-
