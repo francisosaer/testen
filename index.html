@@ -21,7 +21,7 @@ header{
 }
 
 header img{
-    max-width:90px;
+    max-width:80px;
     height:auto;
     margin-bottom:5px;
 }
@@ -41,12 +41,9 @@ button{
     color:white;
     cursor:pointer;
     margin:3px 3px 3px 0;
-    transition:0.2s;
 }
 
-button:hover{
-    opacity:0.85;
-}
+button:hover{opacity:0.85;}
 
 select,input,textarea{
     width:100%;
@@ -75,10 +72,8 @@ select,input,textarea{
 
 .photos img{
     width:90px;
-    height:auto;
     border-radius:6px;
     border:1px solid #ccc;
-    object-fit:cover;
 }
 
 canvas{display:none;}
@@ -140,7 +135,6 @@ canvas{display:none;}
 <div id="lijst"></div>
 
 <br>
-<button onclick="maakPDF()">Project als PDF</button>
 <button onclick="mailProject()">Project mailen</button>
 
 <!-- CAMERA -->
@@ -265,7 +259,6 @@ function takePhoto(){
     ctx.drawImage(video,0,0);
     const data=canvas.toDataURL("image/jpeg",0.6);
     fotosMemory[currentElementId].push(data);
-
     closeCamera();
     setTimeout(()=>{render();},150);
 }
@@ -278,20 +271,19 @@ function closeCamera(){
 }
 
 function mailProject(){
-    const klant=document.getElementById("klant").value||"Project";
-    const onderwerp=encodeURIComponent("Nieuwe opmeting - "+klant);
-    const body=encodeURIComponent("Beste,\n\nIn bijlage vindt u de opmeting.\n\nMet vriendelijke groeten");
-    window.location.href=`mailto:?subject=${onderwerp}&body=${body}`;
-}
 
-function maakPDF(){
     const { jsPDF } = window.jspdf;
     const doc=new jsPDF();
+
     const marge=15;
     const breedte=doc.internal.pageSize.getWidth();
     const hoogte=doc.internal.pageSize.getHeight();
     let y=30;
-    const datum=new Date().toLocaleDateString("nl-BE");
+
+    const klantNaam = project.klant || "Project";
+    const datumObj = new Date();
+    const datumBestand = datumObj.toISOString().split("T")[0];
+    const datumWeergave = datumObj.toLocaleDateString("nl-BE");
 
     doc.setFontSize(18);
     doc.setTextColor(15,36,65);
@@ -299,14 +291,14 @@ function maakPDF(){
 
     doc.setFontSize(10);
     doc.setTextColor(100);
-    doc.text("Datum: "+datum, breedte-marge, 20, {align:"right"});
+    doc.text("Datum: "+datumWeergave, breedte-marge, 20, {align:"right"});
 
     doc.setDrawColor(15,36,65);
     doc.line(marge,25,breedte-marge,25);
 
     doc.setFontSize(12);
     doc.setTextColor(0);
-    doc.text("Klant: "+(project.klant||"-"),marge,y);
+    doc.text("Klant: "+klantNaam,marge,y);
     y+=15;
 
     project.elementen.forEach(el=>{
@@ -324,38 +316,19 @@ function maakPDF(){
 
         if(el.notitie){doc.text(`Notitie: ${el.notitie}`,marge,y);y+=6;}
 
-        y+=5;
-
-        let x=marge;
-        for(const foto of fotosMemory[el.id]){
-            if(y>hoogte-50){doc.addPage();y=30;x=marge;}
-            doc.addImage(foto,"JPEG",x,y,45,35);
-            x+=55;
-            if(x>breedte-60){x=marge;y+=45;}
-        }
-
-        y+=45;
+        y+=10;
     });
 
-    const totaal=doc.internal.getNumberOfPages();
-    for(let i=1;i<=totaal;i++){
-        doc.setPage(i);
-        doc.setFontSize(9);
-        doc.setTextColor(150);
-        doc.text("Pagina "+i+" van "+totaal,breedte/2,hoogte-10,{align:"center"});
-    }
+    const bestandsnaam = klantNaam.replace(/\s+/g,"_") + "_" + datumBestand + ".pdf";
 
-    doc.save("Nieuwe_Opmeting.pdf");
+    doc.save(bestandsnaam);
+
+    setTimeout(()=>{
+        const onderwerp=encodeURIComponent("Nieuwe opmeting - "+klantNaam);
+        const body=encodeURIComponent("Beste,\n\nIn bijlage vindt u de opmeting.\n\nMet vriendelijke groeten");
+        window.location.href=`mailto:?subject=${onderwerp}&body=${body}`;
+    },600);
 }
-
-window.addEventListener("beforeunload",function(e){
-    let hasFotos=Object.values(fotosMemory).some(arr=>arr.length>0);
-    if(hasFotos){
-        e.preventDefault();
-        e.returnValue="Alle foto's gaan verloren bij refresh.";
-        return e.returnValue;
-    }
-});
 
 document.getElementById("klant").addEventListener("input",e=>{
     project.klant=e.target.value;
@@ -367,3 +340,4 @@ render();
 </script>
 </body>
 </html>
+
