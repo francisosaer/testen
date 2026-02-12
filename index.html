@@ -7,11 +7,12 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
+
 body{
     font-family: Arial, sans-serif;
     margin:0;
     padding:15px;
-    background:#f4f6f8;
+    background:#f2f4f7;
 }
 
 header{
@@ -20,67 +21,64 @@ header{
 }
 
 header img{
-    max-width:120px;
+    max-width:90px;
     height:auto;
-    display:block;
-    margin:0 auto 5px auto;
+    margin-bottom:5px;
 }
 
 h1{
-    text-align:center;
     color:rgba(15,36,65);
-    font-size:24px;
-    margin:0 0 10px 0;
+    margin:5px 0 10px 0;
+    font-size:22px;
 }
 
 button{
-    padding:6px 12px;
-    margin:5px 2px 5px 0;
+    padding:6px 10px;
+    font-size:13px;
+    border-radius:6px;
     border:none;
-    border-radius:5px;
     background:rgba(15,36,65);
     color:white;
     cursor:pointer;
-    font-size:14px;
+    margin:3px 3px 3px 0;
     transition:0.2s;
 }
-button:hover{opacity:0.9;}
+
+button:hover{
+    opacity:0.85;
+}
 
 select,input,textarea{
     width:100%;
     padding:6px;
-    margin:5px 0;
-    border-radius:5px;
+    font-size:13px;
+    border-radius:6px;
     border:1px solid #ccc;
-    font-size:14px;
+    margin:4px 0;
 }
 
 .element{
     background:white;
     padding:12px;
-    margin-top:15px;
+    margin-top:18px;
     border-radius:8px;
-    box-shadow:0 2px 6px rgba(0,0,0,0.08);
     border-left:5px solid rgba(15,36,65);
-}
-
-.element + .element{
-    margin-top:20px;
+    box-shadow:0 2px 6px rgba(0,0,0,0.08);
 }
 
 .photos{
     display:flex;
     flex-wrap:wrap;
-    gap:10px;
-    margin-top:10px;
+    gap:8px;
+    margin-top:8px;
 }
 
 .photos img{
     width:90px;
     height:auto;
     border-radius:6px;
-    object-fit:cover;
     border:1px solid #ccc;
+    object-fit:cover;
 }
 
 canvas{display:none;}
@@ -96,24 +94,21 @@ canvas{display:none;}
     justify-content:center;
     align-items:center;
     flex-direction:column;
-    z-index:1000;
+    z-index:999;
 }
 
 #cameraModal video{
-    width:90%;
+    width:95%;
     max-height:70%;
     border-radius:8px;
 }
 
-#cameraModal button{
-    margin-top:10px;
-}
 </style>
 </head>
 <body>
 
 <header>
-    <img src="Logordb.png" alt="Bedrijfslogo">
+    <img src="Logordb.png">
     <h1>Nieuwe Opmeting</h1>
     <button onclick="nieuwProject()">Nieuw Project</button>
 </header>
@@ -139,10 +134,14 @@ canvas{display:none;}
     <option value="Deur">Deur</option>
     <option value="Poort">Poort</option>
 </select>
+
 <button onclick="voegElementToe()">Toevoegen</button>
 
 <div id="lijst"></div>
+
+<br>
 <button onclick="maakPDF()">Project als PDF</button>
+<button onclick="mailProject()">Project mailen</button>
 
 <!-- CAMERA -->
 <div id="cameraModal">
@@ -154,6 +153,7 @@ canvas{display:none;}
 <canvas id="canvas"></canvas>
 
 <script>
+
 let project = JSON.parse(localStorage.getItem("project")) || {
     klant:"",
     elementen:[],
@@ -163,11 +163,12 @@ let project = JSON.parse(localStorage.getItem("project")) || {
 let fotosMemory = {};
 let currentElementId=null;
 let stream=null;
+
 const video=document.getElementById("video");
 const canvas=document.getElementById("canvas");
 const cameraModal=document.getElementById("cameraModal");
 
-function saveMetadata(){
+function save(){
     localStorage.setItem("project",JSON.stringify(project));
 }
 
@@ -181,7 +182,9 @@ function nieuwProject(){
 function voegElementToe(){
     const type=document.getElementById("elementType").value;
     const kamer=document.getElementById("kamer").value;
+
     project.teller[type]++;
+
     const nieuw={
         id:Date.now(),
         type:type,
@@ -191,9 +194,11 @@ function voegElementToe(){
         hoogte:"",
         notitie:""
     };
+
     project.elementen.unshift(nieuw);
-    fotosMemory[nieuw.id] = [];
-    saveMetadata();
+    fotosMemory[nieuw.id]=[];
+
+    save();
     render();
 }
 
@@ -201,16 +206,17 @@ function render(){
     document.getElementById("klant").value=project.klant;
     const lijst=document.getElementById("lijst");
     lijst.innerHTML="";
+
     project.elementen.forEach(el=>{
         const div=document.createElement("div");
         div.className="element";
         div.innerHTML=`
-            <strong>${el.type} ${el.nummer} - ${el.kamer}</strong><br>
-            Breedte (cm):
+            <strong>${el.type} ${el.nummer} - ${el.kamer}</strong>
+            <br>Breedte (cm)
             <input value="${el.breedte}" onchange="update(${el.id},'breedte',this.value)">
-            Hoogte (cm):
+            Hoogte (cm)
             <input value="${el.hoogte}" onchange="update(${el.id},'hoogte',this.value)">
-            Notitie:
+            Notitie
             <textarea onchange="update(${el.id},'notitie',this.value)">${el.notitie}</textarea>
             <button onclick="openCamera(${el.id})">Foto nemen</button>
             <button onclick="verwijder(${el.id})">Verwijderen</button>
@@ -230,13 +236,13 @@ function render(){
 function update(id,veld,waarde){
     const el=project.elementen.find(e=>e.id===id);
     el[veld]=waarde;
-    saveMetadata();
+    save();
 }
 
 function verwijder(id){
     project.elementen=project.elementen.filter(e=>e.id!==id);
     delete fotosMemory[id];
-    saveMetadata();
+    save();
     render();
 }
 
@@ -248,28 +254,20 @@ function verwijderFoto(id,index){
 async function openCamera(id){
     currentElementId=id;
     cameraModal.style.display="flex";
-    try{
-        stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}}});
-        video.srcObject=stream;
-    }catch(err){alert("Camera niet beschikbaar");}
+    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}}});
+    video.srcObject=stream;
 }
 
-// ✅ Foto nemen: sluit camera eerst, daarna overzicht renderen met kleine vertraging
 function takePhoto(){
     const ctx=canvas.getContext("2d");
     canvas.width=video.videoWidth;
     canvas.height=video.videoHeight;
     ctx.drawImage(video,0,0);
-    const data = canvas.toDataURL("image/jpeg",0.6);
+    const data=canvas.toDataURL("image/jpeg",0.6);
     fotosMemory[currentElementId].push(data);
 
-    // Camera sluiten eerst
     closeCamera();
-
-    // Licht vertraging zodat DOM update en foto direct zichtbaar is
-    setTimeout(() => {
-        render();
-    }, 150);
+    setTimeout(()=>{render();},150);
 }
 
 function closeCamera(){
@@ -279,46 +277,93 @@ function closeCamera(){
     }
 }
 
+function mailProject(){
+    const klant=document.getElementById("klant").value||"Project";
+    const onderwerp=encodeURIComponent("Nieuwe opmeting - "+klant);
+    const body=encodeURIComponent("Beste,\n\nIn bijlage vindt u de opmeting.\n\nMet vriendelijke groeten");
+    window.location.href=`mailto:?subject=${onderwerp}&body=${body}`;
+}
+
 function maakPDF(){
     const { jsPDF } = window.jspdf;
     const doc=new jsPDF();
-    let y=10;
-    doc.text("Nieuwe Opmeting",10,y);y+=10;
-    doc.text("Klant: "+document.getElementById("klant").value,10,y);y+=10;
-    for(const el of project.elementen){
-        doc.text(`${el.type} ${el.nummer} - ${el.kamer}`,10,y);y+=7;
-        doc.text(`Breedte: ${el.breedte} cm`,10,y);y+=7;
-        doc.text(`Hoogte: ${el.hoogte} cm`,10,y);y+=7;
-        if(el.notitie){doc.text(`Notitie: ${el.notitie}`,10,y);y+=7;}
-        for(const foto of fotosMemory[el.id]){
-            if(y>240){doc.addPage();y=10;}
-            doc.addImage(foto,"JPEG",10,y,50,40);y+=45;
-        }
+    const marge=15;
+    const breedte=doc.internal.pageSize.getWidth();
+    const hoogte=doc.internal.pageSize.getHeight();
+    let y=30;
+    const datum=new Date().toLocaleDateString("nl-BE");
+
+    doc.setFontSize(18);
+    doc.setTextColor(15,36,65);
+    doc.text("Nieuwe Opmeting", breedte/2, 20, {align:"center"});
+
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text("Datum: "+datum, breedte-marge, 20, {align:"right"});
+
+    doc.setDrawColor(15,36,65);
+    doc.line(marge,25,breedte-marge,25);
+
+    doc.setFontSize(12);
+    doc.setTextColor(0);
+    doc.text("Klant: "+(project.klant||"-"),marge,y);
+    y+=15;
+
+    project.elementen.forEach(el=>{
+        if(y>hoogte-40){doc.addPage();y=30;}
+
+        doc.setTextColor(15,36,65);
+        doc.setFont(undefined,"bold");
+        doc.text(`${el.type} ${el.nummer} - ${el.kamer}`,marge,y);
+        y+=7;
+
+        doc.setTextColor(0);
+        doc.setFont(undefined,"normal");
+        doc.text(`Breedte: ${el.breedte||"-"} cm`,marge,y);y+=6;
+        doc.text(`Hoogte: ${el.hoogte||"-"} cm`,marge,y);y+=6;
+
+        if(el.notitie){doc.text(`Notitie: ${el.notitie}`,marge,y);y+=6;}
+
         y+=5;
+
+        let x=marge;
+        for(const foto of fotosMemory[el.id]){
+            if(y>hoogte-50){doc.addPage();y=30;x=marge;}
+            doc.addImage(foto,"JPEG",x,y,45,35);
+            x+=55;
+            if(x>breedte-60){x=marge;y+=45;}
+        }
+
+        y+=45;
+    });
+
+    const totaal=doc.internal.getNumberOfPages();
+    for(let i=1;i<=totaal;i++){
+        doc.setPage(i);
+        doc.setFontSize(9);
+        doc.setTextColor(150);
+        doc.text("Pagina "+i+" van "+totaal,breedte/2,hoogte-10,{align:"center"});
     }
-    doc.save("Opmeting.pdf");
+
+    doc.save("Nieuwe_Opmeting.pdf");
 }
 
-// Waarschuwing bij refresh als er foto’s aanwezig zijn
-window.addEventListener("beforeunload", function(e){
-    let hasFotos = Object.values(fotosMemory).some(arr=>arr.length>0);
+window.addEventListener("beforeunload",function(e){
+    let hasFotos=Object.values(fotosMemory).some(arr=>arr.length>0);
     if(hasFotos){
         e.preventDefault();
-        e.returnValue="LET OP: Alle foto's gaan verloren bij refresh. Weet je het zeker?";
+        e.returnValue="Alle foto's gaan verloren bij refresh.";
         return e.returnValue;
     }
 });
 
 document.getElementById("klant").addEventListener("input",e=>{
     project.klant=e.target.value;
-    saveMetadata();
+    save();
 });
 
 render();
+
 </script>
 </body>
 </html>
-
-
-
-
