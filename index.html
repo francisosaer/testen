@@ -20,7 +20,7 @@ header{
 }
 
 header img{
-    max-width:120px;
+    max-width:100px;
     height:auto;
     display:block;
     margin:0 auto 5px auto;
@@ -254,19 +254,18 @@ async function openCamera(id){
     }catch(err){alert("Camera niet beschikbaar");}
 }
 
-// ✅ Foto nemen: sluit camera eerst, daarna overzicht renderen met kleine vertraging
+// ✅ Foto nemen: sluit camera eerst, daarna overzicht renderen met lichte vertraging
 function takePhoto(){
-    const ctx=canvas.getContext("2d");
-    canvas.width=video.videoWidth;
-    canvas.height=video.videoHeight;
+    const ctx = canvas.getContext("2d");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
     ctx.drawImage(video,0,0);
-    const data = canvas.toDataURL("image/jpeg",0.6);
+    // kleiner bestand voor PDF
+    const data = canvas.toDataURL("image/jpeg",0.5);
     fotosMemory[currentElementId].push(data);
 
-    // Camera sluiten eerst
     closeCamera();
 
-    // Licht vertraging zodat DOM update en foto direct zichtbaar is
     setTimeout(() => {
         render();
     }, 150);
@@ -279,27 +278,57 @@ function closeCamera(){
     }
 }
 
-function maakPDF(){
+// ✅ PDF export werkt mobiel en klein
+async function maakPDF(){
+
+    if(project.elementen.length === 0){
+        alert("Geen elementen om te exporteren.");
+        return;
+    }
+
     const { jsPDF } = window.jspdf;
-    const doc=new jsPDF();
-    let y=10;
-    doc.text("Nieuwe Opmeting",10,y);y+=10;
-    doc.text("Klant: "+document.getElementById("klant").value,10,y);y+=10;
+    const doc = new jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
+    let y = 15;
+
+    doc.setFontSize(16);
+    doc.text("Nieuwe Opmeting",15,y); y+=10;
+    doc.setFontSize(12);
+    doc.text("Klant: " + document.getElementById("klant").value,15,y); y+=10;
+
     for(const el of project.elementen){
-        doc.text(`${el.type} ${el.nummer} - ${el.kamer}`,10,y);y+=7;
-        doc.text(`Breedte: ${el.breedte} cm`,10,y);y+=7;
-        doc.text(`Hoogte: ${el.hoogte} cm`,10,y);y+=7;
-        if(el.notitie){doc.text(`Notitie: ${el.notitie}`,10,y);y+=7;}
+        if(y > 260){doc.addPage(); y=15;}
+
+        doc.setFontSize(13);
+        doc.text(`${el.type} ${el.nummer} - ${el.kamer}`,15,y); y+=7;
+
+        doc.setFontSize(11);
+        doc.text(`Breedte: ${el.breedte} cm`,15,y); y+=6;
+        doc.text(`Hoogte: ${el.hoogte} cm`,15,y); y+=6;
+
+        if(el.notitie){doc.text(`Notitie: ${el.notitie}`,15,y); y+=6;}
+        y+=3;
+
         for(const foto of fotosMemory[el.id]){
-            if(y>240){doc.addPage();y=10;}
-            doc.addImage(foto,"JPEG",10,y,50,40);y+=45;
+            if(y>240){doc.addPage(); y=15;}
+            doc.addImage(foto,"JPEG",15,y,70,50,undefined,"FAST");
+            y+=55;
         }
         y+=5;
     }
-    doc.save("Opmeting.pdf");
+
+    // ✅ Download Blob werkt op alle mobiele toestellen
+    const blob = doc.output("blob");
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "Nieuwe_Opmeting.pdf";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 }
 
-// Waarschuwing bij refresh als er foto’s aanwezig zijn
+// Waarschuwing bij refresh
 window.addEventListener("beforeunload", function(e){
     let hasFotos = Object.values(fotosMemory).some(arr=>arr.length>0);
     if(hasFotos){
@@ -318,3 +347,4 @@ render();
 </script>
 </body>
 </html>
+
