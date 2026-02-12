@@ -11,45 +11,76 @@
 body{
     font-family:Arial;
     margin:20px;
+    background:#f4f6f9;
+}
+header{
+    display:flex;
+    align-items:center;
+    gap:15px;
+}
+header img{
+    height:60px;
+}
+h2{
+    color:#0f2441;
 }
 button{
-    padding:10px 15px;
-    margin:5px 0;
-    font-size:15px;
+    padding:10px 16px;
+    margin:5px 5px 5px 0;
+    font-size:14px;
     cursor:pointer;
+    border:none;
+    border-radius:6px;
 }
-input, textarea{
+.btn-blauw{background:#0f2441;color:white;}
+.btn-groen{background:#1a7f37;color:white;}
+.btn-rood{background:#b00020;color:white;}
+
+input, select, textarea{
     width:100%;
     padding:6px;
     margin-bottom:8px;
-}
-.foto{
-    width:80px;
-    margin:5px;
-}
-.element{
     border:1px solid #ccc;
-    padding:10px;
+    border-radius:4px;
+}
+
+.element{
+    background:white;
+    padding:12px;
     margin-top:15px;
+    border-radius:8px;
+    box-shadow:0 2px 5px rgba(0,0,0,0.05);
+}
+
+.foto{
+    width:90px;
+    margin:5px;
+    border-radius:6px;
 }
 </style>
 </head>
 
 <body>
 
-<h2>Nieuwe Opmeting</h2>
+<header>
+    <img src="logo.png" alt="Logo">
+    <h2>Nieuwe Opmeting</h2>
+</header>
+
+<br>
 
 <label>Klantnaam</label>
 <input id="klant">
 
-<button onclick="nieuwElement()">Nieuw Element</button>
+<button class="btn-rood" onclick="nieuwProject()">Nieuw Project</button>
+<button class="btn-blauw" onclick="nieuwElement()">Nieuw Element</button>
 
 <div id="elementen"></div>
 
 <hr>
 
-<button onclick="downloadPDF()">Download PDF</button>
-<button onclick="mailProject()">Mail project</button>
+<button class="btn-blauw" onclick="downloadPDF()">Download PDF</button>
+<button class="btn-groen" onclick="mailProject()">Mail project</button>
 
 <script>
 
@@ -60,6 +91,16 @@ let project={
 
 let fotosMemory={};
 let teller=1;
+
+function nieuwProject(){
+    if(confirm("Nieuw project starten? Huidige gegevens gaan verloren.")){
+        project={klant:"",elementen:[]};
+        fotosMemory={};
+        teller=1;
+        document.getElementById("klant").value="";
+        render();
+    }
+}
 
 function nieuwElement(){
 
@@ -93,12 +134,30 @@ function render(){
         div.className="element";
 
         div.innerHTML=`
-        <b>Element ${el.nummer}</b><br>
-        Kamer:<input onchange="update(${el.id},'kamer',this.value)">
-        Breedte (cm):<input onchange="update(${el.id},'breedte',this.value)">
-        Hoogte (cm):<input onchange="update(${el.id},'hoogte',this.value)">
-        Notitie:<textarea onchange="update(${el.id},'notitie',this.value)"></textarea>
-        <button onclick="neemFoto(${el.id})">Foto nemen</button>
+        <b>Element ${el.nummer}</b><br><br>
+
+        Kamer:
+        <select onchange="update(${el.id},'kamer',this.value)">
+            <option value="">-- Kies kamer --</option>
+            <option>Living</option>
+            <option>Keuken</option>
+            <option>Badkamer</option>
+            <option>Slaapkamer</option>
+            <option>Bureau</option>
+            <option>Anders</option>
+        </select>
+
+        Breedte (cm):
+        <input onchange="update(${el.id},'breedte',this.value)">
+
+        Hoogte (cm):
+        <input onchange="update(${el.id},'hoogte',this.value)">
+
+        Notitie:
+        <textarea onchange="update(${el.id},'notitie',this.value)"></textarea>
+
+        <button class="btn-blauw" onclick="neemFoto(${el.id})">Foto nemen</button>
+
         <div id="fotos-${el.id}"></div>
         `;
 
@@ -155,60 +214,66 @@ function downloadPDF(){
     const { jsPDF } = window.jspdf;
     const doc=new jsPDF();
 
-    let y=20;
     const marge=15;
     const breedte=doc.internal.pageSize.getWidth();
     const hoogte=doc.internal.pageSize.getHeight();
+    let y=30;
 
     const datum=new Date().toLocaleDateString("nl-BE");
     const klant=document.getElementById("klant").value||"Project";
 
-    doc.setFontSize(16);
-    doc.text("Opmeting - "+klant,breedte/2,15,{align:"center"});
+    doc.setFontSize(18);
+    doc.setTextColor(15,36,65);
+    doc.text("Opmeting - "+klant,breedte/2,20,{align:"center"});
 
     doc.setFontSize(10);
-    doc.text("Datum: "+datum,breedte-15,15,{align:"right"});
+    doc.setTextColor(100);
+    doc.text("Datum: "+datum,breedte-15,20,{align:"right"});
 
-    y=25;
+    doc.setDrawColor(15,36,65);
+    doc.line(marge,25,breedte-marge,25);
 
     project.elementen.forEach(el=>{
 
-        if(y>hoogte-40){doc.addPage();y=20;}
+        if(y>hoogte-50){doc.addPage();y=30;}
 
         doc.setFontSize(12);
-        doc.text("Element "+el.nummer+" ("+el.kamer+")",marge,y);
-        y+=7;
+        doc.setTextColor(15,36,65);
+        doc.text("Element "+el.nummer+" - "+(el.kamer||""),marge,y);
+        y+=8;
 
         doc.setFontSize(10);
+        doc.setTextColor(0);
         doc.text("Breedte: "+(el.breedte||"-")+" cm",marge,y); y+=6;
         doc.text("Hoogte: "+(el.hoogte||"-")+" cm",marge,y); y+=6;
+
         if(el.notitie){
             doc.text("Notitie: "+el.notitie,marge,y);
             y+=6;
         }
 
-        y+=5;
+        y+=8;
 
         let x=marge;
 
         fotosMemory[el.id].forEach(foto=>{
 
-            if(y>hoogte-50){
+            if(y>hoogte-60){
                 doc.addPage();
-                y=20;
+                y=30;
                 x=marge;
             }
 
-            doc.addImage(foto,"JPEG",x,y,40,30);
-            x+=50;
+            doc.addImage(foto,"JPEG",x,y,45,35);
+            x+=55;
 
-            if(x>breedte-50){
+            if(x>breedte-55){
                 x=marge;
-                y+=40;
+                y+=45;
             }
         });
 
-        y+=45;
+        y+=50;
     });
 
     const bestandsnaam=
@@ -227,7 +292,7 @@ function mailProject(){
 
 In bijlage vindt u de opmeting in PDF.
 
-Gelieve de zojuist gedownloade PDF toe te voegen als bijlage.
+Gelieve de gedownloade PDF toe te voegen als bijlage.
 
 Met vriendelijke groeten`
     );
