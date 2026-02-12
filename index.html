@@ -4,340 +4,240 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Nieuwe Opmeting</title>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
-
 body{
-    font-family: Arial, sans-serif;
-    margin:0;
-    padding:15px;
-    background:#f2f4f7;
+    font-family:Arial;
+    margin:20px;
 }
-
-header{
-    text-align:center;
-    margin-bottom:10px;
-}
-
-header img{
-    max-width:80px;
-    height:auto;
-    margin-bottom:5px;
-}
-
-h1{
-    color:rgba(15,36,65);
-    margin:5px 0 10px 0;
-    font-size:22px;
-}
-
 button{
-    padding:6px 10px;
-    font-size:13px;
-    border-radius:6px;
-    border:none;
-    background:rgba(15,36,65);
-    color:white;
+    padding:10px 15px;
+    margin:5px 0;
+    font-size:15px;
     cursor:pointer;
-    margin:3px 3px 3px 0;
 }
-
-button:hover{opacity:0.85;}
-
-select,input,textarea{
+input, textarea{
     width:100%;
     padding:6px;
-    font-size:13px;
-    border-radius:6px;
-    border:1px solid #ccc;
-    margin:4px 0;
+    margin-bottom:8px;
 }
-
+.foto{
+    width:80px;
+    margin:5px;
+}
 .element{
-    background:white;
-    padding:12px;
-    margin-top:18px;
-    border-radius:8px;
-    border-left:5px solid rgba(15,36,65);
-    box-shadow:0 2px 6px rgba(0,0,0,0.08);
-}
-
-.photos{
-    display:flex;
-    flex-wrap:wrap;
-    gap:8px;
-    margin-top:8px;
-}
-
-.photos img{
-    width:90px;
-    border-radius:6px;
     border:1px solid #ccc;
+    padding:10px;
+    margin-top:15px;
 }
-
-canvas{display:none;}
-
-#cameraModal{
-    display:none;
-    position:fixed;
-    top:0;
-    left:0;
-    width:100%;
-    height:100%;
-    background:rgba(0,0,0,0.95);
-    justify-content:center;
-    align-items:center;
-    flex-direction:column;
-    z-index:999;
-}
-
-#cameraModal video{
-    width:95%;
-    max-height:70%;
-    border-radius:8px;
-}
-
 </style>
 </head>
+
 <body>
 
-<header>
-    <img src="Logordb.png">
-    <h1>Nieuwe Opmeting</h1>
-    <button onclick="nieuwProject()">Nieuw Project</button>
-</header>
+<h2>Nieuwe Opmeting</h2>
 
-<input type="text" id="klant" placeholder="Naam klant">
+<label>Klantnaam</label>
+<input id="klant">
 
-<h3>Kamer kiezen</h3>
-<select id="kamer">
-    <option>Slaapkamer 1</option>
-    <option>Slaapkamer 2</option>
-    <option>Keuken</option>
-    <option>Eetplaats</option>
-    <option>Living</option>
-    <option>Gang</option>
-    <option>Toilet</option>
-    <option>Badkamer</option>
-    <option>Garage</option>
-</select>
+<button onclick="nieuwElement()">Nieuw Element</button>
 
-<h3>Kies element</h3>
-<select id="elementType">
-    <option value="Raam">Raam</option>
-    <option value="Deur">Deur</option>
-    <option value="Poort">Poort</option>
-</select>
+<div id="elementen"></div>
 
-<button onclick="voegElementToe()">Toevoegen</button>
+<hr>
 
-<div id="lijst"></div>
-
-<br>
-<button onclick="mailProject()">Project mailen</button>
-
-<!-- CAMERA -->
-<div id="cameraModal">
-    <video id="video" autoplay playsinline></video>
-    <button onclick="takePhoto()">Foto maken</button>
-    <button onclick="closeCamera()">Sluiten</button>
-</div>
-
-<canvas id="canvas"></canvas>
+<button onclick="downloadPDF()">Download PDF</button>
+<button onclick="mailProject()">Mail project</button>
 
 <script>
 
-let project = JSON.parse(localStorage.getItem("project")) || {
+let project={
     klant:"",
-    elementen:[],
-    teller:{Raam:0,Deur:0,Poort:0}
+    elementen:[]
 };
 
-let fotosMemory = {};
-let currentElementId=null;
-let stream=null;
+let fotosMemory={};
+let teller=1;
 
-const video=document.getElementById("video");
-const canvas=document.getElementById("canvas");
-const cameraModal=document.getElementById("cameraModal");
+function nieuwElement(){
 
-function save(){
-    localStorage.setItem("project",JSON.stringify(project));
-}
+    const id=Date.now();
 
-function nieuwProject(){
-    if(confirm("Nieuw project starten? Alles wordt gewist.")){
-        localStorage.removeItem("project");
-        location.reload();
-    }
-}
-
-function voegElementToe(){
-    const type=document.getElementById("elementType").value;
-    const kamer=document.getElementById("kamer").value;
-
-    project.teller[type]++;
-
-    const nieuw={
-        id:Date.now(),
-        type:type,
-        nummer:project.teller[type],
-        kamer:kamer,
+    const element={
+        id:id,
+        nummer:teller++,
+        kamer:"",
         breedte:"",
         hoogte:"",
         notitie:""
     };
 
-    project.elementen.unshift(nieuw);
-    fotosMemory[nieuw.id]=[];
+    project.elementen.push(element);
+    fotosMemory[id]=[];
 
-    save();
     render();
 }
 
 function render(){
-    document.getElementById("klant").value=project.klant;
-    const lijst=document.getElementById("lijst");
-    lijst.innerHTML="";
+
+    const container=document.getElementById("elementen");
+    container.innerHTML="";
+
+    project.klant=document.getElementById("klant").value;
 
     project.elementen.forEach(el=>{
+
         const div=document.createElement("div");
         div.className="element";
+
         div.innerHTML=`
-            <strong>${el.type} ${el.nummer} - ${el.kamer}</strong>
-            <br>Breedte (cm)
-            <input value="${el.breedte}" onchange="update(${el.id},'breedte',this.value)">
-            Hoogte (cm)
-            <input value="${el.hoogte}" onchange="update(${el.id},'hoogte',this.value)">
-            Notitie
-            <textarea onchange="update(${el.id},'notitie',this.value)">${el.notitie}</textarea>
-            <button onclick="openCamera(${el.id})">Foto nemen</button>
-            <button onclick="verwijder(${el.id})">Verwijderen</button>
-            <div class="photos">
-            ${fotosMemory[el.id].map((f,i)=>`
-                <div>
-                    <img src="${f}">
-                    <button onclick="verwijderFoto(${el.id},${i})">X</button>
-                </div>
-            `).join("")}
-            </div>
+        <b>Element ${el.nummer}</b><br>
+        Kamer:<input onchange="update(${el.id},'kamer',this.value)">
+        Breedte (cm):<input onchange="update(${el.id},'breedte',this.value)">
+        Hoogte (cm):<input onchange="update(${el.id},'hoogte',this.value)">
+        Notitie:<textarea onchange="update(${el.id},'notitie',this.value)"></textarea>
+        <button onclick="neemFoto(${el.id})">Foto nemen</button>
+        <div id="fotos-${el.id}"></div>
         `;
-        lijst.appendChild(div);
+
+        container.appendChild(div);
+        toonFotos(el.id);
     });
 }
 
 function update(id,veld,waarde){
     const el=project.elementen.find(e=>e.id===id);
     el[veld]=waarde;
-    save();
 }
 
-function verwijder(id){
-    project.elementen=project.elementen.filter(e=>e.id!==id);
-    delete fotosMemory[id];
-    save();
-    render();
+function neemFoto(id){
+
+    const input=document.createElement("input");
+    input.type="file";
+    input.accept="image/*";
+    input.capture="environment";
+
+    input.onchange=function(e){
+        const file=e.target.files[0];
+        const reader=new FileReader();
+        reader.onload=function(evt){
+            fotosMemory[id].push(evt.target.result);
+            toonFotos(id);
+        };
+        reader.readAsDataURL(file);
+    };
+
+    input.click();
 }
 
-function verwijderFoto(id,index){
-    fotosMemory[id].splice(index,1);
-    render();
+function toonFotos(id){
+
+    const div=document.getElementById("fotos-"+id);
+    div.innerHTML="";
+
+    fotosMemory[id].forEach(f=>{
+        const img=document.createElement("img");
+        img.src=f;
+        img.className="foto";
+        div.appendChild(img);
+    });
 }
 
-async function openCamera(id){
-    currentElementId=id;
-    cameraModal.style.display="flex";
-    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}}});
-    video.srcObject=stream;
-}
+function downloadPDF(){
 
-function takePhoto(){
-    const ctx=canvas.getContext("2d");
-    canvas.width=video.videoWidth;
-    canvas.height=video.videoHeight;
-    ctx.drawImage(video,0,0);
-    const data=canvas.toDataURL("image/jpeg",0.6);
-    fotosMemory[currentElementId].push(data);
-    closeCamera();
-    setTimeout(()=>{render();},150);
-}
-
-function closeCamera(){
-    cameraModal.style.display="none";
-    if(stream){
-        stream.getTracks().forEach(track=>track.stop());
+    if(project.elementen.length===0){
+        alert("Geen elementen toegevoegd.");
+        return;
     }
-}
-
-function mailProject(){
 
     const { jsPDF } = window.jspdf;
     const doc=new jsPDF();
 
+    let y=20;
     const marge=15;
     const breedte=doc.internal.pageSize.getWidth();
     const hoogte=doc.internal.pageSize.getHeight();
-    let y=30;
 
-    const klantNaam = project.klant || "Project";
-    const datumObj = new Date();
-    const datumBestand = datumObj.toISOString().split("T")[0];
-    const datumWeergave = datumObj.toLocaleDateString("nl-BE");
+    const datum=new Date().toLocaleDateString("nl-BE");
+    const klant=document.getElementById("klant").value||"Project";
 
-    doc.setFontSize(18);
-    doc.setTextColor(15,36,65);
-    doc.text("Nieuwe Opmeting", breedte/2, 20, {align:"center"});
+    doc.setFontSize(16);
+    doc.text("Opmeting - "+klant,breedte/2,15,{align:"center"});
 
     doc.setFontSize(10);
-    doc.setTextColor(100);
-    doc.text("Datum: "+datumWeergave, breedte-marge, 20, {align:"right"});
+    doc.text("Datum: "+datum,breedte-15,15,{align:"right"});
 
-    doc.setDrawColor(15,36,65);
-    doc.line(marge,25,breedte-marge,25);
-
-    doc.setFontSize(12);
-    doc.setTextColor(0);
-    doc.text("Klant: "+klantNaam,marge,y);
-    y+=15;
+    y=25;
 
     project.elementen.forEach(el=>{
-        if(y>hoogte-40){doc.addPage();y=30;}
 
-        doc.setTextColor(15,36,65);
-        doc.setFont(undefined,"bold");
-        doc.text(`${el.type} ${el.nummer} - ${el.kamer}`,marge,y);
+        if(y>hoogte-40){doc.addPage();y=20;}
+
+        doc.setFontSize(12);
+        doc.text("Element "+el.nummer+" ("+el.kamer+")",marge,y);
         y+=7;
 
-        doc.setTextColor(0);
-        doc.setFont(undefined,"normal");
-        doc.text(`Breedte: ${el.breedte||"-"} cm`,marge,y);y+=6;
-        doc.text(`Hoogte: ${el.hoogte||"-"} cm`,marge,y);y+=6;
+        doc.setFontSize(10);
+        doc.text("Breedte: "+(el.breedte||"-")+" cm",marge,y); y+=6;
+        doc.text("Hoogte: "+(el.hoogte||"-")+" cm",marge,y); y+=6;
+        if(el.notitie){
+            doc.text("Notitie: "+el.notitie,marge,y);
+            y+=6;
+        }
 
-        if(el.notitie){doc.text(`Notitie: ${el.notitie}`,marge,y);y+=6;}
+        y+=5;
 
-        y+=10;
+        let x=marge;
+
+        fotosMemory[el.id].forEach(foto=>{
+
+            if(y>hoogte-50){
+                doc.addPage();
+                y=20;
+                x=marge;
+            }
+
+            doc.addImage(foto,"JPEG",x,y,40,30);
+            x+=50;
+
+            if(x>breedte-50){
+                x=marge;
+                y+=40;
+            }
+        });
+
+        y+=45;
     });
 
-    const bestandsnaam = klantNaam.replace(/\s+/g,"_") + "_" + datumBestand + ".pdf";
+    const bestandsnaam=
+        "Opmeting_"+klant.replace(/ /g,"_")+"_"+datum.replace(/\//g,"-")+".pdf";
 
     doc.save(bestandsnaam);
-
-    setTimeout(()=>{
-        const onderwerp=encodeURIComponent("Nieuwe opmeting - "+klantNaam);
-        const body=encodeURIComponent("Beste,\n\nIn bijlage vindt u de opmeting.\n\nMet vriendelijke groeten");
-        window.location.href=`mailto:?subject=${onderwerp}&body=${body}`;
-    },600);
 }
 
-document.getElementById("klant").addEventListener("input",e=>{
-    project.klant=e.target.value;
-    save();
-});
+function mailProject(){
 
-render();
+    const klant=document.getElementById("klant").value||"Project";
+    const onderwerp=encodeURIComponent("Opmeting - "+klant);
+
+    const body=encodeURIComponent(
+`Beste,
+
+In bijlage vindt u de opmeting in PDF.
+
+Gelieve de zojuist gedownloade PDF toe te voegen als bijlage.
+
+Met vriendelijke groeten`
+    );
+
+    window.location.href=`mailto:?subject=${onderwerp}&body=${body}`;
+}
+
+document.getElementById("klant").addEventListener("input",render);
 
 </script>
+
 </body>
 </html>
-
