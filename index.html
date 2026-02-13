@@ -8,7 +8,7 @@
 <style>
 body{font-family:Arial,sans-serif;margin:0;padding:15px;background:#f4f6f8;}
 header{text-align:center;margin-bottom:10px;}
-header img{max-width:80px;display:block;margin:0 auto 5px auto;}
+header img{max-width:60px;display:block;margin:0 auto 5px auto;}
 h1{font-size:24px;margin:0 0 10px 0;color:rgb(15,36,65);}
 button{padding:6px 12px;margin:5px 2px;border:none;border-radius:5px;background:rgb(15,36,65);color:white;cursor:pointer;font-size:14px;}
 button:hover:enabled{opacity:0.9;}
@@ -143,61 +143,51 @@ async function maakPDF(){
     const bestandsnaam=`${veiligeNaam}_${formatDate()}.pdf`;
     const { jsPDF }=window.jspdf;
     const doc=new jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
+    
     let y=15;
 
-    // HEADER: logo links, diensten, titel centraal, datum rechts
-    const imgLogo = new Image(); 
-    imgLogo.src = "Logordb.png";
-    await new Promise(r => { imgLogo.onload = () => r(); });
+    async function addHeader(){
+        const imgLogo = new Image(); imgLogo.src = "Logordb.png";
+        await new Promise(r=>{imgLogo.onload=()=>r();});
+        const maxLogoH=25; let w=imgLogo.width; let h=imgLogo.height; const ratio=w/h;
+        if(h>maxLogoH){h=maxLogoH; w=h*ratio;}
+        doc.addImage(imgLogo,"PNG",10,10,w,h);
 
-    const maxLogoW=40; const maxLogoH=20;
-    let w=imgLogo.width; let h=imgLogo.height; const ratio=w/h;
-    if(w>maxLogoW){w=maxLogoW; h=w/ratio;}
-    if(h>maxLogoH){h=maxLogoH; w=h*ratio;}
-    doc.addImage(imgLogo,"PNG",10,10,w,h);
+        const diensten=["Ramen en deuren in hout / pvc / aluminium","Rolluiken","Zonwering","Garagepoorten"];
+        doc.setFontSize(10); doc.setTextColor(0,0,0);
+        diensten.forEach((d,i)=>doc.text(d,15+w+5,12+i*4));
 
-    // Dienstenlijst links onder logo
-    doc.setFontSize(10); doc.setTextColor(0,0,0);
-    doc.text("Ramen en deuren in hout / pvc / aluminium",10,10+h+3);
-    doc.text("Rolluiken",10,10+h+7);
-    doc.text("Zonwering",10,10+h+11);
-    doc.text("Garagepoorten",10,10+h+15);
+        doc.setFontSize(16); doc.setTextColor(15,36,65);
+        doc.text("Nieuwe Opmeting",105,15,{align:"center"});
 
-    // Titel centraal
-    doc.setFontSize(16); doc.setTextColor(15,36,65);
-    doc.text("Nieuwe Opmeting",105,15,{align:"center"});
+        doc.setFontSize(12); doc.setTextColor(0,0,0);
+        doc.text("Klant: "+klantNaam,105,22,{align:"center"});
 
-    // Klantnaam onder titel
-    doc.setFontSize(12); doc.setTextColor(0,0,0);
-    doc.text("Klant: "+klantNaam,105,22,{align:"center"});
+        const datumText="Datum: "+formatDate();
+        doc.text(datumText,200,15,{align:"right"});
 
-    // Datum rechts
-    const datumText = "Datum: "+formatDate();
-    doc.text(datumText,200,15,{align:"right"});
+        doc.setDrawColor(15,36,65); doc.setLineWidth(1); doc.line(10,35,200,35);
+        y=37;
+    }
 
-    // Lijn onder header
-    doc.setDrawColor(15,36,65); doc.setLineWidth(1); doc.line(10,35,200,35);
-    y=37;
-
-    // COVERPAGINA
-    const totaalRamen = project.elementen.filter(e=>e.type==="Raam").length;
-    const totaalDeuren = project.elementen.filter(e=>e.type==="Deur").length;
-    const totaalPoorten = project.elementen.filter(e=>e.type==="Poort").length;
+    // Coverpagina
+    await addHeader();
+    const typeCounts = {Raam:0,Deur:0,Poort:0};
+    project.elementen.forEach(el=>typeCounts[el.type]++);
     doc.setFontSize(14); doc.setTextColor(0,0,0); y+=10;
     doc.text("Overzicht aantal elementen:",15,y); y+=10;
     doc.setFontSize(12);
-    doc.text(`Ramen: ${totaalRamen}`,15,y); y+=7;
-    doc.text(`Deuren: ${totaalDeuren}`,15,y); y+=7;
-    doc.text(`Poorten: ${totaalPoorten}`,15,y); y+=7;
-    doc.addPage(); y=15;
+    Object.keys(typeCounts).forEach(t=>{
+        if(typeCounts[t]>0) doc.text(`${t}s: ${typeCounts[t]}`,15,y), y+=7;
+    });
 
-    // ELEMENTEN
+    doc.addPage(); y=15; await addHeader();
+
     for(const el of project.elementen){
         const fotosHeight=fotosMemory[el.id].length*55;
-        const textHeight=7+6+6+(el.notitie?6:0)+3; 
-        const neededHeight=textHeight+fotosHeight+8; 
-        if(y+neededHeight>280){doc.addPage();y=15;}
-
+        const textHeight=7+6+6+(el.notitie?6:0)+3;
+        const neededHeight=textHeight+fotosHeight+8;
+        if(y+neededHeight>280){doc.addPage(); y=15; await addHeader();}
         doc.setDrawColor(150); doc.setLineWidth(0.5); doc.line(10,y,200,y); y+=5;
 
         doc.setFontSize(13); doc.text(`${el.type} ${el.nummer} - ${el.kamer}`,15,y); y+=7;
@@ -209,13 +199,12 @@ async function maakPDF(){
             const foto=new Image(); foto.src=f; await new Promise(r=>{foto.onload=()=>r();});
             const maxFW=70; const maxFH=50; let fw=foto.width; let fh=foto.height; const fratio=fw/fh;
             if(fw>maxFW){fw=maxFW; fh=fw/fratio;} if(fh>maxFH){fh=maxFH; fw=fh*fratio;}
-            if(y+fh>280){doc.addPage();y=15;}
+            if(y+fh>280){doc.addPage(); y=15; await addHeader();}
             doc.addImage(foto,"JPEG",15,y,fw,fh); y+=fh+5;
         }
         y+=5;
     }
 
-    // Footer
     const paginaCount=doc.getNumberOfPages();
     for(let i=1;i<=paginaCount;i++){doc.setPage(i); doc.setFontSize(10); doc.setTextColor(100); doc.text("Leopoldlaan 91 9900 Eeklo - Tel 09/343.82.70 - info@ramen-blondeel.be",105,290,{align:"center"});}
 
@@ -232,3 +221,4 @@ render();
 </script>
 </body>
 </html>
+
