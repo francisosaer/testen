@@ -175,16 +175,19 @@ async function maakPDF(){
     doc.setFontSize(14); doc.setTextColor(0,0,0);
     doc.text("Overzicht aantal elementen:",15,y); y+=10;
     doc.setFontSize(12);
-    Object.keys(typeCounts).forEach(t=>{
-        if(typeCounts[t]>0){doc.text(`${t}s: ${typeCounts[t]}`,15,y); y+=7;}
-    });
+    if(typeCounts.Raam>0) doc.text(`Ramen: ${typeCounts.Raam}`,15,y),y+=7;
+    if(typeCounts.Deur>0) doc.text(`Deuren: ${typeCounts.Deur}`,15,y),y+=7;
+    if(typeCounts.Poort>0) doc.text(`Poorten: ${typeCounts.Poort}`,15,y),y+=7;
 
     // Elementenpagina's
     doc.addPage(); y=15; await addHeader();
 
     for(const el of project.elementen){
-        const fotosHeight=fotosMemory[el.id].length*55;
+        const fotosPerRij=3;
+        const fotoMaxW=55;
+        const fotoMaxH=40;
         const textHeight=7+6+6+(el.notitie?6:0)+3;
+        const fotosHeight=Math.ceil(fotosMemory[el.id].length/fotosPerRij)*(fotoMaxH+5);
         const neededHeight=textHeight+fotosHeight+8;
         if(y+neededHeight>280){doc.addPage(); y=15; await addHeader();}
         doc.setDrawColor(150); doc.setLineWidth(0.5); doc.line(10,y,200,y); y+=5;
@@ -192,15 +195,23 @@ async function maakPDF(){
         doc.setFontSize(11); doc.text(`Breedte: ${el.breedte} cm`,15,y); y+=6;
         doc.text(`Hoogte: ${el.hoogte} cm`,15,y); y+=6;
         if(el.notitie){doc.text(`Notitie: ${el.notitie}`,15,y); y+=6;} y+=3;
-        for(const f of fotosMemory[el.id]){
-            const foto=new Image(); foto.src=f; await new Promise(r=>{foto.onload=()=>r();});
+
+        // Foto’s naast elkaar
+        for(let i=0;i<fotosMemory[el.id].length;i++){
+            const f=fotosMemory[el.id][i];
+            const foto=new Image(); foto.src=f;
+            await new Promise(r=>{foto.onload=()=>r();});
             let fw=foto.width; let fh=foto.height; const fratio=fw/fh;
-            const maxFW=70; const maxFH=50;
-            if(fw>maxFW){fw=maxFW; fh=fw/fratio;} if(fh>maxFH){fh=maxFH; fw=fh*fratio;}
-            if(y+fh>280){doc.addPage(); y=15; await addHeader();}
-            doc.addImage(foto,"JPEG",15,y,fw,fh); y+=fh+5;
+            if(fw>fotoMaxW){fw=fotoMaxW; fh=fw/fratio;}
+            if(fh>fotoMaxH){fh=fotoMaxH; fw=fh*fratio;}
+            const col=i%fotosPerRij;
+            const row=Math.floor(i/fotosPerRij);
+            const x=15+col*(fotoMaxW+5);
+            const yFoto=y+row*(fotoMaxH+5);
+            if(yFoto+fh>280){doc.addPage(); y=15; await addHeader(); yFoto=y;}
+            doc.addImage(foto,"JPEG",x,yFoto,fw,fh);
         }
-        y+=5;
+        y+=Math.ceil(fotosMemory[el.id].length/fotosPerRij)*(fotoMaxH+5)+5;
     }
 
     // Footer
