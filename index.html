@@ -168,15 +168,23 @@ async function maakPDF(){
     // Coverpagina
     await addHeader();
 
-    // Overzicht aantal elementen
-    y=45;
-    const typeCounts={Raam:0,Deur:0,Poort:0};
-    project.elementen.forEach(el=>typeCounts[el.type]++);
+    // Overzicht aantal elementen (subtiel blok)
+    y = 45;
+    const typeCounts = {Raam:0,Deur:0,Poort:0};
+    project.elementen.forEach(el => typeCounts[el.type]++);
+
+    doc.setFillColor(230,240,255);
+    doc.roundedRect(10, y-2, 190, 15 + Object.keys(typeCounts).filter(t=>typeCounts[t]>0).length*7, 3, 3, 'F');
+
     doc.setFontSize(14); doc.setTextColor(0,0,0);
-    doc.text("Overzicht aantal elementen:",15,y); y+=10;
+    doc.text("Overzicht aantal elementen:", 15, y); 
+    y += 10;
     doc.setFontSize(12);
-    Object.keys(typeCounts).forEach(t=>{
-        if(typeCounts[t]>0){doc.text(`${t}s: ${typeCounts[t]}`,15,y); y+=7;}
+    Object.keys(typeCounts).forEach(t => {
+        if(typeCounts[t] > 0){ 
+            doc.text(`${t}s: ${typeCounts[t]}`, 15, y); 
+            y += 7; 
+        }
     });
 
     // Elementenpagina's
@@ -219,3 +227,4 @@ render();
 </script>
 </body>
 </html>
+
