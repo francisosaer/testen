@@ -22,8 +22,42 @@ select,input,textarea{width:100%;padding:6px;margin:5px 0;border-radius:5px;bord
 .verwijder-btn:hover{background:#a93226;}
 .photos{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;}
 .photos img{width:90px;border-radius:6px;border:1px solid #ccc;}
-#cameraModal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);justify-content:center;align-items:center;flex-direction:column;z-index:1000;}
-#cameraModal video{width:90%;max-height:70%;border-radius:8px;}
+
+#cameraModal {
+  display: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  background: rgba(0,0,0,0.95);
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  overflow: hidden;
+}
+
+#cameraModal video {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+#cameraModal button {
+  position: absolute;
+  z-index: 1010;
+  padding: 10px 16px;
+  border-radius: 6px;
+  border: none;
+  background: rgba(15,36,65,0.8);
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+#takePhotoBtn { bottom: 20px; left: 50%; transform: translateX(-50%); }
+#closeCameraBtn { top: 20px; right: 20px; }
+
 #mailInstructie{font-size:12px;color:#555;margin-top:5px;}
 </style>
 </head>
@@ -68,8 +102,8 @@ Open het gedownloade PDF-bestand via je bestanden-app om het bij te voegen in Ma
 
 <div id="cameraModal">
 <video id="video" autoplay playsinline></video>
-<button onclick="takePhoto()">Foto maken</button>
-<button onclick="closeCamera()">Sluiten</button>
+<button id="takePhotoBtn" onclick="takePhoto()">Foto maken</button>
+<button id="closeCameraBtn" onclick="closeCamera()">Sluiten</button>
 </div>
 
 <canvas id="canvas" style="display:none;"></canvas>
@@ -230,3 +264,5 @@ render();
 </script>
 </body>
 </html>
+
+
