@@ -8,7 +8,7 @@
 <style>
 body{font-family:Arial,sans-serif;margin:0;padding:15px;background:#f4f6f8;}
 header{text-align:center;margin-bottom:10px;}
-header img{max-width:60px;display:block;margin:0 auto 5px auto;}
+header img{max-width:50px;display:block;margin:0 auto 5px auto;}
 h1{font-size:24px;margin:0 0 10px 0;color:rgb(15,36,65);}
 button{padding:6px 12px;margin:5px 2px;border:none;border-radius:5px;background:rgb(15,36,65);color:white;cursor:pointer;font-size:14px;}
 button:hover:enabled{opacity:0.9;}
@@ -145,7 +145,7 @@ async function maakPDF(){
     
     let y=15;
 
-    async function addHeader(){
+    async function addHeader(cover=false){
         const imgLogo = new Image(); imgLogo.src = "Logordb.png";
         await new Promise(r=>{imgLogo.onload=()=>r();});
         const maxLogoH=25; let w=imgLogo.width; let h=imgLogo.height; const ratio=w/h;
@@ -156,10 +156,13 @@ async function maakPDF(){
         doc.setFontSize(10); doc.setTextColor(0,0,0);
         diensten.forEach((d,i)=>doc.text(d,15+w+5,12+i*4));
 
-        doc.setFontSize(16); doc.setTextColor(15,36,65);
-        doc.text("Nieuwe Opmeting",105,22,{align:"center"});
-        doc.setFontSize(12); doc.setTextColor(0,0,0);
-        doc.text("Klant: "+klantNaam,105,28,{align:"center"});
+        if(!cover){ // geen blauwe coverblok op overige pagina's
+            doc.setFontSize(16); doc.setTextColor(15,36,65);
+            doc.text("Nieuwe Opmeting",105,22,{align:"center"});
+            doc.setFontSize(12); doc.setTextColor(0,0,0);
+            doc.text("Klant: "+klantNaam,105,28,{align:"center"});
+        }
+
         const datumText="Datum: "+formatDate();
         doc.text(datumText,200,15,{align:"right"});
 
@@ -167,8 +170,8 @@ async function maakPDF(){
         y=37;
     }
 
-    // Coverpagina met subtiel gekleurd blok
-    await addHeader();
+    // Coverpagina
+    await addHeader(true);
     doc.setFillColor(220,230,241); doc.rect(10,40,190,20,'F');
     doc.setFontSize(16); doc.setTextColor(15,36,65); doc.text("Nieuwe Opmeting",105,55,{align:"center"});
     doc.setFontSize(12); doc.setTextColor(0,0,0); doc.text("Klant: "+klantNaam,105,61,{align:"center"});
@@ -184,13 +187,14 @@ async function maakPDF(){
         if(typeCounts[t]>0){doc.text(`${t}s: ${typeCounts[t]}`,15,y); y+=7;}
     });
 
-    doc.addPage(); y=15; await addHeader();
+    // Elementenpagina's
+    doc.addPage(); y=15; await addHeader(false);
 
     for(const el of project.elementen){
         const fotosHeight=fotosMemory[el.id].length*55;
         const textHeight=7+6+6+(el.notitie?6:0)+3;
         const neededHeight=textHeight+fotosHeight+8;
-        if(y+neededHeight>280){doc.addPage(); y=15; await addHeader();}
+        if(y+neededHeight>280){doc.addPage(); y=15; await addHeader(false);}
         doc.setDrawColor(150); doc.setLineWidth(0.5); doc.line(10,y,200,y); y+=5;
         doc.setFontSize(13); doc.text(`${el.type} ${el.nummer} - ${el.kamer}`,15,y); y+=7;
         doc.setFontSize(11); doc.text(`Breedte: ${el.breedte} cm`,15,y); y+=6;
@@ -201,12 +205,13 @@ async function maakPDF(){
             let fw=foto.width; let fh=foto.height; const fratio=fw/fh;
             const maxFW=70; const maxFH=50;
             if(fw>maxFW){fw=maxFW; fh=fw/fratio;} if(fh>maxFH){fh=maxFH; fw=fh*fratio;}
-            if(y+fh>280){doc.addPage(); y=15; await addHeader();}
+            if(y+fh>280){doc.addPage(); y=15; await addHeader(false);}
             doc.addImage(foto,"JPEG",15,y,fw,fh); y+=fh+5;
         }
         y+=5;
     }
 
+    // Footer
     const paginaCount=doc.getNumberOfPages();
     for(let i=1;i<=paginaCount;i++){doc.setPage(i); doc.setFontSize(10); doc.setTextColor(100); doc.text("Leopoldlaan 91 9900 Eeklo - Tel 09/343.82.70 - info@ramen-blondeel.be",105,290,{align:"center"});}
 
