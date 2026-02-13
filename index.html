@@ -78,7 +78,6 @@ Open het gedownloade PDF-bestand via je bestanden-app om het bij te voegen in Ma
 let project = JSON.parse(localStorage.getItem("project")) || {klant:"",elementen:[],teller:{Raam:0,Deur:0,Poort:0}};
 let fotosMemory = {};
 let currentElementId=null;
-let stream=null;
 let pdfGemaakt=false;
 const video=document.getElementById("video");
 const canvas=document.getElementById("canvas");
@@ -131,9 +130,9 @@ function render(){
 function update(id,veld,waarde){const el=project.elementen.find(e=>e.id===id);el[veld]=waarde;saveMetadata();}
 function verwijder(id){const el=project.elementen.find(e=>e.id===id);if(!el) return;const bevestiging=confirm(`Weet je zeker dat je dit element wil verwijderen?\n\n${el.type} ${el.nummer} - ${el.kamer}\n\nAlle ingevoerde maten en foto's gaan verloren.`);if(!bevestiging) return;project.elementen=project.elementen.filter(e=>e.id!==id);delete fotosMemory[id];saveMetadata();render();}
 function verwijderFoto(id,index){fotosMemory[id].splice(index,1);render();}
-async function openCamera(id){currentElementId=id;cameraModal.style.display="flex";try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}}});video.srcObject=stream;}catch(err){alert("Camera niet beschikbaar");}}
+async function openCamera(id){currentElementId=id;cameraModal.style.display="flex";try{const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}}});video.srcObject=stream;}catch(err){alert("Camera niet beschikbaar");}}
 function takePhoto(){const ctx=canvas.getContext("2d");canvas.width=video.videoWidth;canvas.height=video.videoHeight;ctx.drawImage(video,0,0);const data=canvas.toDataURL("image/jpeg",0.5);fotosMemory[currentElementId].push(data);closeCamera();setTimeout(()=>{render();},150);}
-function closeCamera(){cameraModal.style.display="none";if(stream) stream.getTracks().forEach(track=>track.stop());}
+function closeCamera(){cameraModal.style.display="none";if(video.srcObject) video.srcObject.getTracks().forEach(track=>track.stop());}
 function formatDate(){const d=new Date();const dag=String(d.getDate()).padStart(2,'0');const maand=String(d.getMonth()+1).padStart(2,'0');const jaar=d.getFullYear();return `${dag}-${maand}-${jaar}`;}
 
 async function maakPDF(){
@@ -158,11 +157,9 @@ async function maakPDF(){
         diensten.forEach((d,i)=>doc.text(d,15+w+5,12+i*4));
 
         doc.setFontSize(16); doc.setTextColor(15,36,65);
-        doc.text("Nieuwe Opmeting",105,15,{align:"center"});
-
+        doc.text("Nieuwe Opmeting",105,22,{align:"center"});
         doc.setFontSize(12); doc.setTextColor(0,0,0);
-        doc.text("Klant: "+klantNaam,105,22,{align:"center"});
-
+        doc.text("Klant: "+klantNaam,105,28,{align:"center"});
         const datumText="Datum: "+formatDate();
         doc.text(datumText,200,15,{align:"right"});
 
@@ -170,15 +167,21 @@ async function maakPDF(){
         y=37;
     }
 
-    // Coverpagina
+    // Coverpagina met subtiel gekleurd blok
     await addHeader();
-    const typeCounts = {Raam:0,Deur:0,Poort:0};
+    doc.setFillColor(220,230,241); doc.rect(10,40,190,20,'F');
+    doc.setFontSize(16); doc.setTextColor(15,36,65); doc.text("Nieuwe Opmeting",105,55,{align:"center"});
+    doc.setFontSize(12); doc.setTextColor(0,0,0); doc.text("Klant: "+klantNaam,105,61,{align:"center"});
+
+    // Overzicht aantal elementen
+    y=70;
+    const typeCounts={Raam:0,Deur:0,Poort:0};
     project.elementen.forEach(el=>typeCounts[el.type]++);
-    doc.setFontSize(14); doc.setTextColor(0,0,0); y+=10;
+    doc.setFontSize(14); doc.setTextColor(0,0,0);
     doc.text("Overzicht aantal elementen:",15,y); y+=10;
     doc.setFontSize(12);
     Object.keys(typeCounts).forEach(t=>{
-        if(typeCounts[t]>0) doc.text(`${t}s: ${typeCounts[t]}`,15,y), y+=7;
+        if(typeCounts[t]>0){doc.text(`${t}s: ${typeCounts[t]}`,15,y); y+=7;}
     });
 
     doc.addPage(); y=15; await addHeader();
@@ -189,15 +192,14 @@ async function maakPDF(){
         const neededHeight=textHeight+fotosHeight+8;
         if(y+neededHeight>280){doc.addPage(); y=15; await addHeader();}
         doc.setDrawColor(150); doc.setLineWidth(0.5); doc.line(10,y,200,y); y+=5;
-
         doc.setFontSize(13); doc.text(`${el.type} ${el.nummer} - ${el.kamer}`,15,y); y+=7;
         doc.setFontSize(11); doc.text(`Breedte: ${el.breedte} cm`,15,y); y+=6;
         doc.text(`Hoogte: ${el.hoogte} cm`,15,y); y+=6;
         if(el.notitie){doc.text(`Notitie: ${el.notitie}`,15,y); y+=6;} y+=3;
-
         for(const f of fotosMemory[el.id]){
             const foto=new Image(); foto.src=f; await new Promise(r=>{foto.onload=()=>r();});
-            const maxFW=70; const maxFH=50; let fw=foto.width; let fh=foto.height; const fratio=fw/fh;
+            let fw=foto.width; let fh=foto.height; const fratio=fw/fh;
+            const maxFW=70; const maxFH=50;
             if(fw>maxFW){fw=maxFW; fh=fw/fratio;} if(fh>maxFH){fh=maxFH; fw=fh*fratio;}
             if(y+fh>280){doc.addPage(); y=15; await addHeader();}
             doc.addImage(foto,"JPEG",15,y,fw,fh); y+=fh+5;
@@ -215,10 +217,8 @@ async function maakPDF(){
 }
 
 function mailProject(){if(!pdfGemaakt){alert("Maak eerst de PDF van het project.");return;}window.location.href="mailto:?subject=Nieuwe Opmeting&body=De PDF werd gedownload. Voeg deze toe vanuit je bestanden-app.";}
-
 document.getElementById("klant").addEventListener("input",e=>{project.klant=e.target.value;saveMetadata();});
 render();
 </script>
 </body>
 </html>
-
