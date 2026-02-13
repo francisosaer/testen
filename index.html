@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="nl">
 <head>
@@ -65,8 +64,12 @@ select,input,textarea{
     margin-top:15px;
     border-radius:8px;
     box-shadow:0 2px 6px rgba(0,0,0,0.08);
-    border-left:5px solid rgb(15,36,65);
+    border-left:6px solid rgb(15,36,65);
 }
+
+.raam{border-left-color:#2980b9;}
+.deur{border-left-color:#27ae60;}
+.poort{border-left-color:#8e44ad;}
 
 .verwijder-btn{
     position:absolute;
@@ -77,9 +80,7 @@ select,input,textarea{
     padding:5px 8px;
 }
 
-.verwijder-btn:hover{
-    background:#a93226;
-}
+.verwijder-btn:hover{background:#a93226;}
 
 .photos{
     display:flex;
@@ -160,7 +161,6 @@ select,input,textarea{
 Open het gedownloade PDF-bestand via je bestanden-app om het bij te voegen in Mail.
 </p>
 
-<!-- CAMERA -->
 <div id="cameraModal">
     <video id="video" autoplay playsinline></video>
     <button onclick="takePhoto()">Foto maken</button>
@@ -224,7 +224,13 @@ function render(){
         if(!fotosMemory[el.id]) fotosMemory[el.id]=[];
 
         const div=document.createElement("div");
-        div.className="element";
+
+        let kleurClass="";
+        if(el.type==="Raam") kleurClass="raam";
+        if(el.type==="Deur") kleurClass="deur";
+        if(el.type==="Poort") kleurClass="poort";
+
+        div.className="element "+kleurClass;
 
         div.innerHTML=`
             <button class="verwijder-btn" onclick="verwijder(${el.id})">
@@ -305,9 +311,7 @@ function takePhoto(){
     ctx.drawImage(video,0,0);
     const data=canvas.toDataURL("image/jpeg",0.5);
     fotosMemory[currentElementId].push(data);
-
     closeCamera();
-
     setTimeout(()=>{render();},150);
 }
 
@@ -316,23 +320,50 @@ function closeCamera(){
     if(stream) stream.getTracks().forEach(track=>track.stop());
 }
 
+function formatDate(){
+    const d=new Date();
+    const dag=String(d.getDate()).padStart(2,'0');
+    const maand=String(d.getMonth()+1).padStart(2,'0');
+    const jaar=d.getFullYear();
+    return `${dag}-${maand}-${jaar}`;
+}
+
 async function maakPDF(){
     if(project.elementen.length===0){
         alert("Geen elementen om te exporteren.");
         return;
     }
 
+    const klantNaam=document.getElementById("klant").value.trim() || "Klant";
+    const veiligeNaam=klantNaam.replace(/\s+/g,"_");
+    const bestandsnaam=`${veiligeNaam}_${formatDate()}.pdf`;
+
     const { jsPDF }=window.jspdf;
     const doc=new jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
     let y=15;
 
+    // Logo bovenaan
+    const imgLogo=new Image();
+    imgLogo.src="Logordb.png";
+    await new Promise(r=>{
+        imgLogo.onload=()=>r();
+    });
+    doc.addImage(imgLogo,"PNG",15,5,40,20);
+    y+=30;
+
     doc.setFontSize(16);
     doc.text("Nieuwe Opmeting",15,y); y+=10;
     doc.setFontSize(12);
-    doc.text("Klant: "+document.getElementById("klant").value,15,y); y+=10;
+    doc.text("Klant: "+klantNaam,15,y); y+=10;
 
     for(const el of project.elementen){
-        if(y>260){doc.addPage(); y=15;}
+        if(y>240){doc.addPage(); y=15;}
+        // Scheiding
+        doc.setDrawColor(150);
+        doc.setLineWidth(0.5);
+        doc.line(10,y,200,y); y+=5;
+
+        // Element info
         doc.setFontSize(13);
         doc.text(`${el.type} ${el.nummer} - ${el.kamer}`,15,y); y+=7;
         doc.setFontSize(11);
@@ -342,18 +373,27 @@ async function maakPDF(){
         y+=3;
 
         for(const foto of fotosMemory[el.id]){
-            if(y>240){doc.addPage(); y=15;}
+            if(y>180){doc.addPage(); y=15;}
             doc.addImage(foto,"JPEG",15,y,70,50,undefined,"FAST");
             y+=55;
         }
         y+=5;
     }
 
+    // Footer
+    const paginaCount=doc.getNumberOfPages();
+    for(let i=1;i<=paginaCount;i++){
+        doc.setPage(i);
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        doc.text("Leopoldlaan 91 9900 Eeklo - Tel 09/343.82.70 - info@ramen-blondeel.be",105,290,{align:"center"});
+    }
+
     const blob=doc.output("blob");
     const url=URL.createObjectURL(blob);
     const a=document.createElement("a");
     a.href=url;
-    a.download="Nieuwe_Opmeting.pdf";
+    a.download=bestandsnaam;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -369,16 +409,8 @@ function mailProject(){
         alert("Maak eerst de PDF van het project.");
         return;
     }
-    window.location.href="mailto:?subject=Nieuwe Opmeting&body=PDF is gedownload. Voeg deze toe vanuit je bestanden-app.";
+    window.location.href="mailto:?subject=Nieuwe Opmeting&body=De PDF werd gedownload. Voeg deze toe vanuit je bestanden-app.";
 }
-
-window.addEventListener("beforeunload",function(e){
-    let hasFotos=Object.values(fotosMemory).some(arr=>arr.length>0);
-    if(hasFotos){
-        e.preventDefault();
-        e.returnValue="LET OP: Alle foto's gaan verloren bij refresh.";
-    }
-});
 
 document.getElementById("klant").addEventListener("input",e=>{
     project.klant=e.target.value;
@@ -389,3 +421,4 @@ render();
 </script>
 </body>
 </html>
+
