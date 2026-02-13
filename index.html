@@ -145,20 +145,41 @@ async function maakPDF(){
     const doc=new jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
     let y=15;
 
-    // HEADER: logo proportioneel + titel + klant
-    const imgLogo=new Image(); imgLogo.src="Logordb.png";
-    await new Promise(r=>{imgLogo.onload=()=>r();});
+    // HEADER: logo links, diensten, titel centraal, datum rechts
+    const imgLogo = new Image(); 
+    imgLogo.src = "Logordb.png";
+    await new Promise(r => { imgLogo.onload = () => r(); });
+
     const maxLogoW=40; const maxLogoH=20;
     let w=imgLogo.width; let h=imgLogo.height; const ratio=w/h;
     if(w>maxLogoW){w=maxLogoW; h=w/ratio;}
     if(h>maxLogoH){h=maxLogoH; w=h*ratio;}
-    doc.addImage(imgLogo,"PNG",15,10,w,h);
-    doc.setFontSize(16); doc.setTextColor(15,36,65); doc.text("Nieuwe Opmeting",60,20);
-    doc.setFontSize(12); doc.setTextColor(0,0,0); doc.text("Klant: "+klantNaam,60,28);
-    doc.setDrawColor(15,36,65); doc.setLineWidth(1); doc.line(10,32,200,32);
+    doc.addImage(imgLogo,"PNG",10,10,w,h);
+
+    // Dienstenlijst links onder logo
+    doc.setFontSize(10); doc.setTextColor(0,0,0);
+    doc.text("Ramen en deuren in hout / pvc / aluminium",10,10+h+3);
+    doc.text("Rolluiken",10,10+h+7);
+    doc.text("Zonwering",10,10+h+11);
+    doc.text("Garagepoorten",10,10+h+15);
+
+    // Titel centraal
+    doc.setFontSize(16); doc.setTextColor(15,36,65);
+    doc.text("Nieuwe Opmeting",105,15,{align:"center"});
+
+    // Klantnaam onder titel
+    doc.setFontSize(12); doc.setTextColor(0,0,0);
+    doc.text("Klant: "+klantNaam,105,22,{align:"center"});
+
+    // Datum rechts
+    const datumText = "Datum: "+formatDate();
+    doc.text(datumText,200,15,{align:"right"});
+
+    // Lijn onder header
+    doc.setDrawColor(15,36,65); doc.setLineWidth(1); doc.line(10,35,200,35);
     y=37;
 
-    // COVERPAGINA: totaal aantal elementen
+    // COVERPAGINA
     const totaalRamen = project.elementen.filter(e=>e.type==="Raam").length;
     const totaalDeuren = project.elementen.filter(e=>e.type==="Deur").length;
     const totaalPoorten = project.elementen.filter(e=>e.type==="Poort").length;
