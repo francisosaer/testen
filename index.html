@@ -158,24 +158,32 @@ async function maakPDF(){
     doc.setDrawColor(15,36,65); doc.setLineWidth(1); doc.line(10,32,200,32);
     y=37;
 
+    // COVERPAGINA: totaal aantal elementen
+    const totaalRamen = project.elementen.filter(e=>e.type==="Raam").length;
+    const totaalDeuren = project.elementen.filter(e=>e.type==="Deur").length;
+    const totaalPoorten = project.elementen.filter(e=>e.type==="Poort").length;
+    doc.setFontSize(14); doc.setTextColor(0,0,0); y+=10;
+    doc.text("Overzicht aantal elementen:",15,y); y+=10;
+    doc.setFontSize(12);
+    doc.text(`Ramen: ${totaalRamen}`,15,y); y+=7;
+    doc.text(`Deuren: ${totaalDeuren}`,15,y); y+=7;
+    doc.text(`Poorten: ${totaalPoorten}`,15,y); y+=7;
+    doc.addPage(); y=15;
+
     // ELEMENTEN
     for(const el of project.elementen){
-        // Bereken benodigde hoogte
         const fotosHeight=fotosMemory[el.id].length*55;
         const textHeight=7+6+6+(el.notitie?6:0)+3; 
         const neededHeight=textHeight+fotosHeight+8; 
         if(y+neededHeight>280){doc.addPage();y=15;}
 
-        // Scheiding boven element
         doc.setDrawColor(150); doc.setLineWidth(0.5); doc.line(10,y,200,y); y+=5;
 
-        // Info
         doc.setFontSize(13); doc.text(`${el.type} ${el.nummer} - ${el.kamer}`,15,y); y+=7;
         doc.setFontSize(11); doc.text(`Breedte: ${el.breedte} cm`,15,y); y+=6;
         doc.text(`Hoogte: ${el.hoogte} cm`,15,y); y+=6;
         if(el.notitie){doc.text(`Notitie: ${el.notitie}`,15,y); y+=6;} y+=3;
 
-        // Foto’s proportioneel
         for(const f of fotosMemory[el.id]){
             const foto=new Image(); foto.src=f; await new Promise(r=>{foto.onload=()=>r();});
             const maxFW=70; const maxFH=50; let fw=foto.width; let fh=foto.height; const fratio=fw/fh;
@@ -190,7 +198,6 @@ async function maakPDF(){
     const paginaCount=doc.getNumberOfPages();
     for(let i=1;i<=paginaCount;i++){doc.setPage(i); doc.setFontSize(10); doc.setTextColor(100); doc.text("Leopoldlaan 91 9900 Eeklo - Tel 09/343.82.70 - info@ramen-blondeel.be",105,290,{align:"center"});}
 
-    // Download
     const blob=doc.output("blob"); const url=URL.createObjectURL(blob);
     const a=document.createElement("a"); a.href=url; a.download=bestandsnaam; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
 
@@ -204,5 +211,3 @@ render();
 </script>
 </body>
 </html>
-
-
