@@ -98,7 +98,6 @@ select,input,textarea{
   object-fit:cover;
 }
 
-/* Sluitknop */
 #closeCameraBtn{
   position:absolute;
   top:20px;
@@ -112,7 +111,6 @@ select,input,textarea{
   cursor:pointer;
 }
 
-/* Onderste overlay */
 #cameraOverlay{
   position:absolute;
   bottom:0;
@@ -125,7 +123,6 @@ select,input,textarea{
   align-items:center;
 }
 
-/* Ronde shutter knop */
 #takePhotoBtn{
   width:75px;
   height:75px;
@@ -175,8 +172,6 @@ select,input,textarea{
 
 <div id="lijst"></div>
 
-<button onclick="maakPDF()">Project als PDF</button>
-
 <!-- CAMERA -->
 <div id="cameraModal">
   <video id="video" autoplay playsinline></video>
@@ -190,7 +185,7 @@ select,input,textarea{
 
 <script>
 
-/* ===== FIX mobiele 100vh bug ===== */
+/* ===== Fix mobiele viewport ===== */
 function setRealViewportHeight(){
   const vh = window.innerHeight * 0.01;
   document.documentElement.style.setProperty('--vh', `${vh}px`);
@@ -199,13 +194,29 @@ window.addEventListener('resize', setRealViewportHeight);
 window.addEventListener('load', setRealViewportHeight);
 
 /* ===== DATA ===== */
-let project = {klant:"",elementen:[],teller:{Raam:0,Deur:0,Poort:0}};
+let project = {klant:"",elementen:[]};
 let fotosMemory = {};
 let currentElementId=null;
 
 const video=document.getElementById("video");
 const canvas=document.getElementById("canvas");
 const cameraModal=document.getElementById("cameraModal");
+
+/* ===== HERNUMMERING ===== */
+function hernummerElementen(){
+  const types=["Raam","Deur","Poort"];
+
+  types.forEach(type=>{
+    let teller=1;
+
+    project.elementen
+      .filter(el=>el.type===type)
+      .forEach(el=>{
+        el.nummer=teller;
+        teller++;
+      });
+  });
+}
 
 /* ===== FUNCTIES ===== */
 
@@ -219,20 +230,28 @@ function voegElementToe(){
   const type=document.getElementById("elementType").value;
   const kamer=document.getElementById("kamer").value;
 
-  project.teller[type]++;
-
   const nieuw={
     id:Date.now(),
     type:type,
-    nummer:project.teller[type],
+    nummer:0,
     kamer:kamer,
     breedte:"",
     hoogte:"",
     notitie:""
   };
 
-  project.elementen.unshift(nieuw);
+  project.elementen.push(nieuw);
   fotosMemory[nieuw.id]=[];
+
+  hernummerElementen();
+  render();
+}
+
+function verwijder(id){
+  project.elementen = project.elementen.filter(e=>e.id!==id);
+  delete fotosMemory[id];
+
+  hernummerElementen();
   render();
 }
 
@@ -307,4 +326,3 @@ render();
 </script>
 </body>
 </html>
-
