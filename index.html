@@ -14,8 +14,6 @@ body{
     background:#f4f6f8;
 }
 
-/* ================= HEADER ================= */
-
 header{
     text-align:center;
     margin-bottom:10px;
@@ -55,7 +53,7 @@ select,input,textarea{
     border:1px solid #ccc;
 }
 
-/* ================= ELEMENT BLOKKEN ================= */
+/* Element blokken */
 
 .element{
     position:relative;
@@ -65,19 +63,6 @@ select,input,textarea{
     border-radius:8px;
     box-shadow:0 2px 6px rgba(0,0,0,0.08);
     border-left:6px solid rgb(15,36,65);
-}
-
-.raam{border-left-color:#2980b9;}
-.deur{border-left-color:#27ae60;}
-.poort{border-left-color:#8e44ad;}
-
-.verwijder-btn{
-    position:absolute;
-    top:10px;
-    right:10px;
-    background:#c0392b;
-    font-size:12px;
-    padding:5px 8px;
 }
 
 .photos{
@@ -93,9 +78,8 @@ select,input,textarea{
     border:1px solid #ccc;
 }
 
-/* ================= CAMERA FIX ================= */
+/* Camera */
 
-/* 100vh mobile fix */
 #cameraModal{
     display:none;
     position:fixed;
@@ -117,7 +101,6 @@ select,input,textarea{
     object-fit:cover;
 }
 
-/* Overlay knoppen */
 #cameraModal button{
     position:absolute;
     z-index:1010;
@@ -138,12 +121,6 @@ select,input,textarea{
 #closeCameraBtn{
     top:20px;
     right:20px;
-}
-
-#mailInstructie{
-    font-size:12px;
-    color:#555;
-    margin-top:5px;
 }
 </style>
 </head>
@@ -177,13 +154,6 @@ select,input,textarea{
 
 <div id="lijst"></div>
 
-<button onclick="maakPDF()">Project als PDF</button>
-<button id="mailBtn" onclick="mailProject()" disabled>Project mailen</button>
-
-<p id="mailInstructie" style="display:none;">
-Open het gedownloade PDF-bestand via je bestanden-app om het bij te voegen in Mail.
-</p>
-
 <!-- CAMERA -->
 <div id="cameraModal">
 <video id="video" autoplay playsinline></video>
@@ -195,17 +165,16 @@ Open het gedownloade PDF-bestand via je bestanden-app om het bij te voegen in Ma
 
 <script>
 
-/* ========== MOBILE 100VH FIX ========== */
+/* ===== Mobile 100vh fix ===== */
 
 function setRealViewportHeight(){
     const vh = window.innerHeight * 0.01;
     document.documentElement.style.setProperty('--vh', `${vh}px`);
 }
-
 window.addEventListener('resize', setRealViewportHeight);
 window.addEventListener('load', setRealViewportHeight);
 
-/* ========== PROJECT DATA ========== */
+/* ===== Project data ===== */
 
 let project = JSON.parse(localStorage.getItem("project")) || {
     klant:"",
@@ -215,13 +184,10 @@ let project = JSON.parse(localStorage.getItem("project")) || {
 
 let fotosMemory = {};
 let currentElementId = null;
-let pdfGemaakt = false;
 
 const video = document.getElementById("video");
 const canvas = document.getElementById("canvas");
 const cameraModal = document.getElementById("cameraModal");
-
-/* ========== FUNCTIES ========== */
 
 function saveMetadata(){
     localStorage.setItem("project", JSON.stringify(project));
@@ -279,7 +245,27 @@ function render(){
             <textarea onchange="update(${el.id},'notitie',this.value)">${el.notitie}</textarea>
             <button onclick="openCamera(${el.id})">Foto nemen</button>
             <div class="photos">
-                ${fotosMemory[el.id].map(f=>`<img src="${f}">`).join("")}
+                ${fotosMemory[el.id].map((f,i)=>`
+                    <div style="position:relative;">
+                        <img src="${f}">
+                        <button 
+                            style="
+                                position:absolute;
+                                top:-6px;
+                                right:-6px;
+                                background:#c0392b;
+                                border:none;
+                                color:white;
+                                font-size:12px;
+                                width:20px;
+                                height:20px;
+                                border-radius:50%;
+                                cursor:pointer;
+                            "
+                            onclick="verwijderFoto(${el.id},${i})"
+                        >×</button>
+                    </div>
+                `).join("")}
             </div>
         `;
         lijst.appendChild(div);
@@ -290,6 +276,11 @@ function update(id, veld, waarde){
     const el = project.elementen.find(e=>e.id===id);
     el[veld] = waarde;
     saveMetadata();
+}
+
+function verwijderFoto(id, index){
+    fotosMemory[id].splice(index,1);
+    render();
 }
 
 async function openCamera(id){
@@ -327,14 +318,6 @@ function closeCamera(){
     }
 }
 
-function mailProject(){
-    if(!pdfGemaakt){
-        alert("Maak eerst de PDF.");
-        return;
-    }
-    window.location.href="mailto:?subject=Nieuwe Opmeting";
-}
-
 document.getElementById("klant").addEventListener("input",e=>{
     project.klant = e.target.value;
     saveMetadata();
@@ -345,5 +328,6 @@ render();
 </script>
 </body>
 </html>
+
 
 
