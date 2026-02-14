@@ -189,15 +189,11 @@ window.addEventListener('load', setRealViewportHeight);
 let project = JSON.parse(localStorage.getItem("project")) || {
     klant:"",
     elementen:[],
-    teller:{Raam:0,Deur:0,Poort:0}
 };
+
 let fotosMemory = {};
 let currentElementId = null;
 let pdfGemaakt = false;
-
-const video = document.getElementById("video");
-const canvas = document.getElementById("canvas");
-const cameraModal = document.getElementById("cameraModal");
 
 /* ===== Helpers ===== */
 function saveMetadata(){ localStorage.setItem("project", JSON.stringify(project)); }
@@ -212,36 +208,43 @@ function nieuwProject(){
 function voegElementToe(){
     const type = document.getElementById("elementType").value;
     const kamer = document.getElementById("kamer").value;
-    project.teller[type]++;
+
     const nieuw = {
         id:Date.now(),
         type:type,
-        nummer:project.teller[type],
         kamer:kamer,
         breedte:"",
         hoogte:"",
         notitie:""
     };
+
     project.elementen.unshift(nieuw);
     fotosMemory[nieuw.id] = [];
     saveMetadata();
     render();
 }
 
+/* ===== Render functie met correcte nummering ===== */
 function render(){
     document.getElementById("klant").value = project.klant;
     const lijst = document.getElementById("lijst");
     lijst.innerHTML = "";
 
+    // Nummering per type opnieuw berekenen
+    let typeCount = {Raam:0,Deur:0,Poort:0};
+
     project.elementen.forEach(el=>{
-        if(!fotosMemory[el.id]) fotosMemory[el.id]=[];
+        typeCount[el.type]++;
+        const nummer = typeCount[el.type];
+
+        if(!fotosMemory[el.id]) fotosMemory[el.id] = [];
 
         const div = document.createElement("div");
         div.className = "element";
 
         div.innerHTML = `
             <button class="verwijder-btn" onclick="verwijderElement(${el.id})">Element verwijderen</button>
-            <strong>${el.type} ${el.nummer} - ${el.kamer}</strong><br>
+            <strong>${el.type} ${nummer} - ${el.kamer}</strong><br>
             Breedte (cm):
             <input value="${el.breedte}" onchange="update(${el.id},'breedte',this.value)">
             Hoogte (cm):
@@ -277,6 +280,7 @@ function render(){
     });
 }
 
+/* ===== Update functies ===== */
 function update(id, veld, waarde){
     const el = project.elementen.find(e=>e.id===id);
     el[veld]=waarde;
@@ -345,3 +349,4 @@ render();
 </script>
 </body>
 </html>
+
