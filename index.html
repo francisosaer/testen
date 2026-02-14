@@ -3,223 +3,232 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Offerte Generator 6m</title>
-
+<title>Nieuwe Opmeting</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
 <style>
-body { font-family: Arial; margin:20px; }
-button { margin:5px; padding:8px 12px; }
-.element { border:1px solid #ccc; padding:10px; margin:10px 0; }
-img { max-width:100px; margin:5px; }
+body{font-family:Arial,sans-serif;margin:0;padding:15px;background:#f4f6f8;}
+header{text-align:center;margin-bottom:10px;}
+header img{max-width:50px;display:block;margin:0 auto 5px auto;}
+h1{font-size:24px;margin:0 0 10px 0;color:rgb(15,36,65);}
+button{padding:6px 12px;margin:5px 2px;border:none;border-radius:5px;background:rgb(15,36,65);color:white;cursor:pointer;font-size:14px;}
+button:hover:enabled{opacity:0.9;} button:disabled{background:#999;cursor:not-allowed;}
+select,input,textarea{width:100%;padding:6px;margin:5px 0;border-radius:5px;border:1px solid #ccc;}
+.element{position:relative;background:white;padding:12px;margin-top:15px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.08);border-left:6px solid rgb(15,36,65);}
+.raam{border-left-color:#2980b9;} .deur{border-left-color:#27ae60;} .poort{border-left-color:#8e44ad;}
+.verwijder-btn{position:absolute;top:10px;right:10px;background:#c0392b;font-size:12px;padding:5px 8px;}
+.photos{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;}
+.photos img{width:90px;border-radius:6px;border:1px solid #ccc;}
+#cameraModal{display:none;position:fixed;top:0;left:0;width:100vw;height:calc(var(--vh)*100);background:rgba(0,0,0,0.95);z-index:1000;overflow:hidden;}
+#cameraModal video{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;}
+#cameraModal button{position:absolute;z-index:1010;padding:12px 18px;border-radius:6px;border:none;background:rgba(15,36,65,0.85);color:white;font-size:16px;}
+#takePhotoBtn{bottom:30px;left:50%;transform:translateX(-50%);}
+#closeCameraBtn{top:20px;right:20px;}
 </style>
 </head>
 <body>
 
-<h2>Offerte Generator</h2>
+<header>
+<img src="Logordb.png" alt="Logo">
+<h1>Nieuwe Opmeting</h1>
+<button onclick="nieuwProject()">Nieuw Project</button>
+</header>
 
-<label>Klantnaam:</label>
-<input type="text" id="klantNaam"><br><br>
+<input type="text" id="klant" placeholder="Naam klant">
 
-<button onclick="addElement('raam')">Raam toevoegen</button>
-<button onclick="addElement('deur')">Deur toevoegen</button>
-<button onclick="addElement('poort')">Poort toevoegen</button>
+<h3>Kamer kiezen</h3>
+<select id="kamer">
+<option>Slaapkamer 1</option>
+<option>Slaapkamer 2</option>
+<option>Keuken</option>
+<option>Living</option>
+<option>Garage</option>
+<option>Eetplaats</option>
+<option>Gang</option>
+<option>Toilet</option>
+</select>
 
-<div id="elementsContainer"></div>
+<h3>Kies element</h3>
+<select id="elementType">
+<option value="Raam">Raam</option>
+<option value="Deur">Deur</option>
+<option value="Poort">Poort</option>
+</select>
 
-<br>
-<button onclick="generatePDF()">PDF downloaden</button>
-<button id="mailButton" onclick="sendMail()" disabled>Mail verzenden</button>
+<button onclick="voegElementToe()">Toevoegen</button>
+
+<div id="lijst"></div>
+
+<button onclick="maakPDF()">Project als PDF</button>
+<button id="mailBtn" onclick="mailProject()" disabled>Project mailen</button>
+
+<p id="mailInstructie" style="display:none;">Open het gedownloade PDF-bestand via je bestanden-app om het bij te voegen in Mail.</p>
+
+<!-- CAMERA -->
+<div id="cameraModal">
+<video id="video" autoplay playsinline></video>
+<button id="takePhotoBtn" onclick="takePhoto()">Foto maken</button>
+<button id="closeCameraBtn" onclick="closeCamera()">Sluiten</button>
+</div>
+
+<canvas id="canvas" style="display:none;"></canvas>
 
 <script>
+function setRealViewportHeight(){ const vh = window.innerHeight*0.01; document.documentElement.style.setProperty('--vh',`${vh}px`);}
+window.addEventListener('resize',setRealViewportHeight);
+window.addEventListener('load',setRealViewportHeight);
 
-let elements = [];
-let pdfBlobGlobal = null;
+let project = JSON.parse(localStorage.getItem("project"))||{klant:"",elementen:[]};
+let fotosMemory = {};
+let currentElementId = null;
+let pdfGemaakt = false;
 
-function addElement(type) {
-
-  const element = {
-    id: Date.now(),
-    type: type,
-    photos: []
-  };
-
-  elements.push(element);
-  renderElements();
+function saveMetadata(){ localStorage.setItem("project",JSON.stringify(project)); }
+function nieuwProject(){ if(confirm("Nieuw project starten? Alles wordt gewist.")){ localStorage.removeItem("project"); location.reload(); }}
+function voegElementToe(){
+    const type=document.getElementById("elementType").value;
+    const kamer=document.getElementById("kamer").value;
+    const nieuw={id:Date.now(),type:type,kamer:kamer,breedte:"",hoogte:"",notitie:""};
+    project.elementen.unshift(nieuw);
+    fotosMemory[nieuw.id]=[];
+    saveMetadata();
+    render();
 }
 
-function removeElement(id) {
-  elements = elements.filter(el => el.id !== id);
-  renderElements();
-}
+function render(){
+    document.getElementById("klant").value=project.klant;
+    const lijst=document.getElementById("lijst");
+    lijst.innerHTML="";
+    let typeCount={Raam:0,Deur:0,Poort:0};
+    let nummering={};
+    const reversed=[...project.elementen].reverse();
+    reversed.forEach(el=>{ typeCount[el.type]++; nummering[el.id]=typeCount[el.type]; });
 
-function renderElements() {
-
-  const container = document.getElementById("elementsContainer");
-  container.innerHTML = "";
-
-  elements.forEach((el, index) => {
-
-    const div = document.createElement("div");
-    div.className = "element";
-
-    const title = document.createElement("h4");
-    title.innerText = el.type.charAt(0).toUpperCase() + el.type.slice(1) + " " + (index + 1);
-    div.appendChild(title);
-
-    const fileInput = document.createElement("input");
-    fileInput.type = "file";
-    fileInput.multiple = true;
-
-    fileInput.onchange = function(e) {
-      for (let file of e.target.files) {
-        el.photos.push(file);
-      }
-      renderElements();
-    };
-
-    div.appendChild(fileInput);
-
-    const photosDiv = document.createElement("div");
-
-    el.photos.forEach(photo => {
-      const img = document.createElement("img");
-      img.src = URL.createObjectURL(photo);
-      photosDiv.appendChild(img);
+    project.elementen.forEach(el=>{
+        const nummer=nummering[el.id];
+        if(!fotosMemory[el.id]) fotosMemory[el.id]=[];
+        const div=document.createElement("div");
+        div.className="element";
+        div.innerHTML=`
+            <button class="verwijder-btn" onclick="verwijderElement(${el.id})">Element verwijderen</button>
+            <strong>${el.type} ${nummer} - ${el.kamer}</strong><br>
+            Breedte (cm):
+            <input value="${el.breedte}" onchange="update(${el.id},'breedte',this.value)">
+            Hoogte (cm):
+            <input value="${el.hoogte}" onchange="update(${el.id},'hoogte',this.value)">
+            Notitie:
+            <textarea onchange="update(${el.id},'notitie',this.value)">${el.notitie}</textarea>
+            <button onclick="openCamera(${el.id})">Foto nemen</button>
+            <div class="photos">
+                ${fotosMemory[el.id].map((f,i)=>`
+                    <div style="position:relative;">
+                        <img src="${f}">
+                        <button style="position:absolute;top:-6px;right:-6px;background:#2980b9;border:none;color:white;font-size:12px;width:20px;height:20px;border-radius:50%;cursor:pointer;" onclick="verwijderFoto(${el.id},${i})">×</button>
+                    </div>
+                `).join("")}
+            </div>
+        `;
+        lijst.appendChild(div);
     });
-
-    div.appendChild(photosDiv);
-
-    const deleteBtn = document.createElement("button");
-    deleteBtn.innerText = "Verwijderen";
-    deleteBtn.onclick = () => removeElement(el.id);
-    div.appendChild(deleteBtn);
-
-    container.appendChild(div);
-  });
 }
 
-async function generatePDF() {
+function update(id,veld,waarde){ const el=project.elementen.find(e=>e.id===id); el[veld]=waarde; saveMetadata();}
+function verwijderFoto(id,index){ fotosMemory[id].splice(index,1); render();}
+function verwijderElement(id){ if(confirm("Element verwijderen?")){ project.elementen=project.elementen.filter(e=>e.id!==id); delete fotosMemory[id]; saveMetadata(); render();}}
 
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
+async function openCamera(id){ currentElementId=id; cameraModal.style.display="block"; try{ const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}}}); video.srcObject=stream;}catch(err){alert("Camera niet beschikbaar");}}
+function takePhoto(){ const ctx=canvas.getContext("2d"); canvas.width=video.videoWidth; canvas.height=video.videoHeight; ctx.drawImage(video,0,0); const data=canvas.toDataURL("image/jpeg",0.6); fotosMemory[currentElementId].push(data); closeCamera(); setTimeout(render,150);}
+function closeCamera(){ cameraModal.style.display="none"; if(video.srcObject) video.srcObject.getTracks().forEach(track=>track.stop());}
 
-  let y = 20;
+/* ===== PDF met proporties en correct Nederlands ===== */
+function maakPDF(){
+    if(!project.klant){ alert("Geef eerst de naam van de klant in."); return;}
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
 
-  // COVER
-  doc.setFontSize(22);
-  doc.text("Offerte Overzicht", 105, y, null, null, "center");
-  y += 15;
+    // --- Coverpagina 6D layout ---
+    doc.setFillColor(240,245,250);
+    doc.rect(0,0,210,297,'F');
+    const logo = new Image();
+    logo.src = 'Logordb.png';
+    logo.onload = function(){
+        // Logo max 40x40 mm, behoud verhouding
+        let logoWidth=logo.width, logoHeight=logo.height;
+        const maxSize=40;
+        if(logoWidth>logoHeight){ logoHeight = logoHeight*(maxSize/logoWidth); logoWidth=maxSize; } else { logoWidth=logoWidth*(maxSize/logoHeight); logoHeight=maxSize; }
+        doc.addImage(logo,'PNG',15,15,logoWidth,logoHeight);
 
-  const klant = document.getElementById("klantNaam").value;
-  doc.setFontSize(14);
-  doc.text("Klant: " + klant, 20, y);
-  y += 20;
+        doc.setFontSize(12);
+        doc.setTextColor(15,36,65);
+        const startX=15+logoWidth+5;
+        doc.text("Ramen en deuren in hout / pvc / aluminium", startX,25);
+        doc.text("Rolluiken",startX,32);
+        doc.text("Zonwering",startX,39);
+        doc.text("Garagepoorten",startX,46);
 
-  // Overzicht
-  const counts = {};
-  elements.forEach(el => {
-    counts[el.type] = (counts[el.type] || 0) + 1;
-  });
+        // Titel gecentreerd
+        doc.setFontSize(20); doc.setTextColor(15,36,65);
+        doc.text("Nieuwe Opmeting",105,70,{align:"center"});
+        doc.setFontSize(16);
+        doc.text(`${project.klant}`,105,80,{align:"center"});
 
-  doc.setFontSize(12);
+        // Datum rechtsboven
+        doc.setFontSize(12);
+        doc.text(`Datum: ${new Date().toLocaleDateString()}`,150,15);
 
-  if (counts.raam > 0) {
-    doc.text("Aantal ramen: " + counts.raam, 20, y);
-    y += 8;
-  }
+        // Overzicht totaal elementen in correct Nederlands
+        let yEl=100;
+        doc.setFontSize(14); doc.text("Overzicht elementen:",15,yEl); yEl+=10;
+        const types = [{type:"Raam",label:"Aantal ramen"},{type:"Deur",label:"Aantal deuren"},{type:"Poort",label:"Aantal poorten"}];
+        types.forEach(t=>{
+            const aantal = project.elementen.filter(e=>e.type===t.type).length;
+            if(aantal>0){ doc.text(`${t.label}: ${aantal}`,15,yEl); yEl+=8;}
+        });
 
-  if (counts.deur > 0) {
-    doc.text("Aantal deuren: " + counts.deur, 20, y);
-    y += 8;
-  }
-
-  if (counts.poort > 0) {
-    doc.text("Aantal poorten: " + counts.poort, 20, y);
-    y += 8;
-  }
-
-  // Nieuwe pagina voor foto's
-  doc.addPage();
-  y = 20;
-
-  for (let i = 0; i < elements.length; i++) {
-
-    const el = elements[i];
-
-    doc.setFontSize(16);
-    doc.text(el.type.toUpperCase() + " " + (i + 1), 20, y);
-    y += 10;
-
-    for (let photo of el.photos) {
-
-      const imgData = await fileToBase64(photo);
-
-      const imgProps = doc.getImageProperties(imgData);
-
-      const maxWidth = 90;
-      const maxHeight = 60;
-
-      let width = imgProps.width;
-      let height = imgProps.height;
-
-      const ratio = Math.min(maxWidth / width, maxHeight / height);
-      width *= ratio;
-      height *= ratio;
-
-      if (y + height > 270) {
         doc.addPage();
-        y = 20;
-      }
+        let y=20;
+        const header = ()=>{ doc.setFontSize(12); doc.setTextColor(15,36,65); doc.text(`Nieuwe Opmeting: ${project.klant}`,15,10); doc.text(`Datum: ${new Date().toLocaleDateString()}`,150,10); y=20;}
+        header();
 
-      doc.addImage(imgData, 'JPEG', 20, y, width, height);
-      y += height + 10;
+        project.elementen.slice().reverse().forEach(el=>{
+            doc.setDrawColor(0,0,0); doc.setLineWidth(0.5); doc.line(10,y,200,y); y+=5;
+            const nummer = el.type + " " + (()=>{let count=0;for(const e of project.elementen){if(e.type===el.type && project.elementen.indexOf(e)<=project.elementen.indexOf(el)) count++;} return count;})();
+            doc.setFontSize(14); doc.text(`${nummer} - ${el.kamer}`,15,y); y+=7;
+            if(el.breedte){ doc.text(`Breedte: ${el.breedte} cm`,15,y); y+=7;}
+            if(el.hoogte){ doc.text(`Hoogte: ${el.hoogte} cm`,15,y); y+=7;}
+            if(el.notitie){ doc.text(`Notitie: ${el.notitie}`,15,y); y+=7;}
+
+            // Foto's in verhouding
+            let fotoX=15;
+            fotosMemory[el.id].forEach(f=>{
+                const img = new Image();
+                img.src=f;
+                img.onload = function(){
+                    let w=img.width, h=img.height;
+                    const maxSize=50;
+                    if(w>h){ h = h*(maxSize/w); w=maxSize;} else { w = w*(maxSize/h); h=maxSize;}
+                    if(y+h>280){ doc.addPage(); header();}
+                    doc.addImage(f,'JPEG',fotoX,y,w,h);
+                    fotoX+=w+5;
+                    if(fotoX>150){ fotoX=15; y+=h+5;}
+                }
+            });
+            y+=60;
+        });
+
+        // Footer
+        doc.setFontSize(10); doc.setTextColor(100);
+        doc.text("Leopoldlaan 91 9900 Eeklo - Tel 09/343.82.70 - info@ramen-blondeel.be",105,290,{align:"center"});
+
+        const fileName=`${project.klant.replace(/\s+/g,'_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+        setTimeout(()=>{ doc.save(fileName); pdfGemaakt=true; document.getElementById("mailBtn").disabled=false; alert("PDF opgeslagen. Nu kan je project mailen."); },500);
     }
-
-    y += 10;
-  }
-
-  pdfBlobGlobal = doc.output("blob");
-  doc.save("offerte.pdf");
-
-  document.getElementById("mailButton").disabled = false;
 }
 
-function fileToBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
+function mailProject(){ if(!pdfGemaakt){ alert("Maak eerst de PDF."); return;} const subject=encodeURIComponent(`Nieuwe Opmeting: ${project.klant}`); const body=encodeURIComponent(`Zie bijlage voor het project: ${project.klant}`); window.location.href=`mailto:?subject=${subject}&body=${body}`;}
 
-async function sendMail() {
-
-  const formData = new FormData();
-  formData.append("pdf", pdfBlobGlobal, "offerte.pdf");
-  formData.append("klantNaam", document.getElementById("klantNaam").value);
-
-  elements.forEach((el, i) => {
-    el.photos.forEach((photo, j) => {
-      formData.append(`photo_${i}_${j}`, photo);
-    });
-  });
-
-  try {
-    await fetch("send_mail.php", {
-      method: "POST",
-      body: formData
-    });
-
-    alert("Mail succesvol verzonden.");
-
-  } catch (error) {
-    alert("Fout bij verzenden.");
-  }
-}
-
+document.getElementById("klant").addEventListener("input",e=>{ project.klant=e.target.value; saveMetadata();});
+render();
 </script>
-
 </body>
 </html>
+
