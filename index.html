@@ -14,23 +14,23 @@ body{
     background:#f4f6f8;
 }
 
+/* ===== Header ===== */
 header{
     text-align:center;
     margin-bottom:10px;
 }
-
 header img{
     max-width:50px;
     display:block;
     margin:0 auto 5px auto;
 }
-
 h1{
     font-size:24px;
     margin:0 0 10px 0;
     color:rgb(15,36,65);
 }
 
+/* ===== Buttons & Inputs ===== */
 button{
     padding:6px 12px;
     margin:5px 2px;
@@ -41,10 +41,8 @@ button{
     cursor:pointer;
     font-size:14px;
 }
-
 button:hover:enabled{opacity:0.9;}
 button:disabled{background:#999;cursor:not-allowed;}
-
 select,input,textarea{
     width:100%;
     padding:6px;
@@ -53,8 +51,7 @@ select,input,textarea{
     border:1px solid #ccc;
 }
 
-/* Element blokken */
-
+/* ===== Element blokken ===== */
 .element{
     position:relative;
     background:white;
@@ -65,21 +62,33 @@ select,input,textarea{
     border-left:6px solid rgb(15,36,65);
 }
 
+.raam{border-left-color:#2980b9;}
+.deur{border-left-color:#27ae60;}
+.poort{border-left-color:#8e44ad;}
+
+.verwijder-btn{
+    position:absolute;
+    top:10px;
+    right:10px;
+    background:#c0392b;
+    font-size:12px;
+    padding:5px 8px;
+}
+
+/* ===== Photos ===== */
 .photos{
     display:flex;
     flex-wrap:wrap;
     gap:10px;
     margin-top:10px;
 }
-
 .photos img{
     width:90px;
     border-radius:6px;
     border:1px solid #ccc;
 }
 
-/* Camera */
-
+/* ===== Camera ===== */
 #cameraModal{
     display:none;
     position:fixed;
@@ -91,7 +100,6 @@ select,input,textarea{
     z-index:1000;
     overflow:hidden;
 }
-
 #cameraModal video{
     position:absolute;
     top:0;
@@ -100,7 +108,6 @@ select,input,textarea{
     height:100%;
     object-fit:cover;
 }
-
 #cameraModal button{
     position:absolute;
     z-index:1010;
@@ -111,13 +118,11 @@ select,input,textarea{
     color:white;
     font-size:16px;
 }
-
 #takePhotoBtn{
     bottom:30px;
     left:50%;
     transform:translateX(-50%);
 }
-
 #closeCameraBtn{
     top:20px;
     right:20px;
@@ -154,6 +159,13 @@ select,input,textarea{
 
 <div id="lijst"></div>
 
+<button onclick="maakPDF()">Project als PDF</button>
+<button id="mailBtn" onclick="mailProject()" disabled>Project mailen</button>
+
+<p id="mailInstructie" style="display:none;">
+Open het gedownloade PDF-bestand via je bestanden-app om het bij te voegen in Mail.
+</p>
+
 <!-- CAMERA -->
 <div id="cameraModal">
 <video id="video" autoplay playsinline></video>
@@ -166,7 +178,6 @@ select,input,textarea{
 <script>
 
 /* ===== Mobile 100vh fix ===== */
-
 function setRealViewportHeight(){
     const vh = window.innerHeight * 0.01;
     document.documentElement.style.setProperty('--vh', `${vh}px`);
@@ -175,23 +186,21 @@ window.addEventListener('resize', setRealViewportHeight);
 window.addEventListener('load', setRealViewportHeight);
 
 /* ===== Project data ===== */
-
 let project = JSON.parse(localStorage.getItem("project")) || {
     klant:"",
     elementen:[],
     teller:{Raam:0,Deur:0,Poort:0}
 };
-
 let fotosMemory = {};
 let currentElementId = null;
+let pdfGemaakt = false;
 
 const video = document.getElementById("video");
 const canvas = document.getElementById("canvas");
 const cameraModal = document.getElementById("cameraModal");
 
-function saveMetadata(){
-    localStorage.setItem("project", JSON.stringify(project));
-}
+/* ===== Helpers ===== */
+function saveMetadata(){ localStorage.setItem("project", JSON.stringify(project)); }
 
 function nieuwProject(){
     if(confirm("Nieuw project starten? Alles wordt gewist.")){
@@ -203,9 +212,7 @@ function nieuwProject(){
 function voegElementToe(){
     const type = document.getElementById("elementType").value;
     const kamer = document.getElementById("kamer").value;
-
     project.teller[type]++;
-
     const nieuw = {
         id:Date.now(),
         type:type,
@@ -215,10 +222,8 @@ function voegElementToe(){
         hoogte:"",
         notitie:""
     };
-
     project.elementen.unshift(nieuw);
     fotosMemory[nieuw.id] = [];
-
     saveMetadata();
     render();
 }
@@ -228,14 +233,14 @@ function render(){
     const lijst = document.getElementById("lijst");
     lijst.innerHTML = "";
 
-    project.elementen.forEach(el => {
-
-        if(!fotosMemory[el.id]) fotosMemory[el.id] = [];
+    project.elementen.forEach(el=>{
+        if(!fotosMemory[el.id]) fotosMemory[el.id]=[];
 
         const div = document.createElement("div");
         div.className = "element";
 
         div.innerHTML = `
+            <button class="verwijder-btn" onclick="verwijderElement(${el.id})">Element verwijderen</button>
             <strong>${el.type} ${el.nummer} - ${el.kamer}</strong><br>
             Breedte (cm):
             <input value="${el.breedte}" onchange="update(${el.id},'breedte',this.value)">
@@ -253,7 +258,7 @@ function render(){
                                 position:absolute;
                                 top:-6px;
                                 right:-6px;
-                                background:#c0392b;
+                                background:#2980b9;
                                 border:none;
                                 color:white;
                                 font-size:12px;
@@ -274,60 +279,69 @@ function render(){
 
 function update(id, veld, waarde){
     const el = project.elementen.find(e=>e.id===id);
-    el[veld] = waarde;
+    el[veld]=waarde;
     saveMetadata();
 }
 
-function verwijderFoto(id, index){
+function verwijderFoto(id,index){
     fotosMemory[id].splice(index,1);
     render();
 }
 
+function verwijderElement(id){
+    if(confirm("Element verwijderen?")){
+        project.elementen = project.elementen.filter(e=>e.id!==id);
+        delete fotosMemory[id];
+        saveMetadata();
+        render();
+    }
+}
+
+/* ===== Camera ===== */
 async function openCamera(id){
     currentElementId = id;
-    cameraModal.style.display = "block";
-
+    cameraModal.style.display="block";
     try{
-        const stream = await navigator.mediaDevices.getUserMedia({
-            video:{facingMode:{ideal:"environment"}}
-        });
+        const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}}});
         video.srcObject = stream;
-    }catch(err){
-        alert("Camera niet beschikbaar");
-    }
+    }catch(err){ alert("Camera niet beschikbaar"); }
 }
 
 function takePhoto(){
     const ctx = canvas.getContext("2d");
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-
     ctx.drawImage(video,0,0);
-
     const data = canvas.toDataURL("image/jpeg",0.6);
     fotosMemory[currentElementId].push(data);
-
     closeCamera();
     setTimeout(render,150);
 }
 
 function closeCamera(){
     cameraModal.style.display="none";
-    if(video.srcObject){
-        video.srcObject.getTracks().forEach(track=>track.stop());
-    }
+    if(video.srcObject) video.srcObject.getTracks().forEach(track=>track.stop());
 }
 
+/* ===== PDF & Mail placeholders ===== */
+function maakPDF(){
+    alert("PDF functie placeholder – behoud 6d functionaliteit");
+    pdfGemaakt=true;
+    document.getElementById("mailBtn").disabled=false;
+}
+
+function mailProject(){
+    if(!pdfGemaakt){ alert("Maak eerst de PDF."); return; }
+    alert("Mail functie placeholder – behoud 6d functionaliteit");
+}
+
+/* ===== Klant naam update ===== */
 document.getElementById("klant").addEventListener("input",e=>{
     project.klant = e.target.value;
     saveMetadata();
 });
 
 render();
-
 </script>
 </body>
 </html>
-
-
-
