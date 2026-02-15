@@ -150,8 +150,6 @@ async function maakPDF(){
     const doc = new jsPDF();
 
     // Coverpagina
-    doc.setFillColor(240,245,250);
-    doc.rect(0,0,210,297,'F');
     const logo = new Image();
     logo.src='Logordb.png';
     logo.onload = async function(){
@@ -172,12 +170,25 @@ async function maakPDF(){
         doc.setFontSize(12); doc.text(`Datum: ${new Date().toLocaleDateString()}`,150,15);
 
         let yEl=100;
-        doc.setFontSize(14); doc.text("Overzicht elementen:",15,yEl); yEl+=10;
-        const types=["Raam","Deur","Poort"];
-        types.forEach(t=>{
-            const aantal=project.elementen.filter(e=>e.type===t).length;
-            if(aantal>0){ doc.text(`${t}: ${aantal}`,15,yEl); yEl+=8; }
-        });
+       doc.setFontSize(14); 
+doc.text("Overzicht aantal elementen:",15,yEl); 
+yEl+=10;
+
+// Meervoudsvormen correct weergeven
+const mapping = {
+    "Raam": "Ramen",
+    "Deur": "Deuren",
+    "Poort": "Poorten"
+};
+
+["Raam","Deur","Poort"].forEach(t=>{
+    const aantal = project.elementen.filter(e=>e.type===t).length;
+    if(aantal>0){ 
+        doc.text(`${mapping[t]}: ${aantal}`,15,yEl); 
+        yEl+=8;
+    }
+});
+
 
         doc.addPage();
         let y=20;
@@ -232,5 +243,6 @@ render();
 </script>
 </body>
 </html>
+
 
 
