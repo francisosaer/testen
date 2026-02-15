@@ -56,6 +56,13 @@ select,input,textarea{width:100%;padding:6px;margin:5px 0;border-radius:5px;bord
 
 <button onclick="voegElementToe()">Toevoegen</button>
 
+ <div id="liveOverzicht" style="margin-top:15px;padding:10px;background:white;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.08);">
+    <strong>Overzicht aantal elementen:</strong>
+    <div id="aantalRamen">Ramen: 0</div>
+    <div id="aantalDeuren">Deuren: 0</div>
+    <div id="aantalPoorten">Poorten: 0</div>
+</div>
+   
 <div id="lijst"></div>
 
 <button onclick="maakPDF()">Project als PDF</button>
@@ -127,9 +134,20 @@ function render(){
                 `).join("")}
             </div>
         `;
-        lijst.appendChild(div);
+                lijst.appendChild(div);
     });
+
+    // Live overzicht aantallen bijwerken
+    const ramen = project.elementen.filter(e=>e.type==="Raam").length;
+    const deuren = project.elementen.filter(e=>e.type==="Deur").length;
+    const poorten = project.elementen.filter(e=>e.type==="Poort").length;
+
+    document.getElementById("aantalRamen").textContent = "Ramen: " + ramen;
+    document.getElementById("aantalDeuren").textContent = "Deuren: " + deuren;
+    document.getElementById("aantalPoorten").textContent = "Poorten: " + poorten;
+
 }
+
 
 function update(id,veld,waarde){ const el=project.elementen.find(e=>e.id===id); el[veld]=waarde; saveMetadata();}
 function verwijderFoto(id,index){ fotosMemory[id].splice(index,1); render();}
@@ -243,6 +261,7 @@ render();
 </script>
 </body>
 </html>
+
 
 
 
