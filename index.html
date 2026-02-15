@@ -174,7 +174,30 @@ async function maakPDF(){
 
         doc.setFontSize(20); doc.text("Nieuwe Opmeting",105,70,{align:"center"});
         doc.setFontSize(16); doc.text(`${project.klant}`,105,80,{align:"center"});
-        doc.setFontSize(12); doc.text(`Datum: ${new Date().toLocaleDateString()}`,150,15);
+        doc.setFontSize(12); 
+doc.text(`Datum: ${new Date().toLocaleDateString()}`,150,15);
+
+// ===== Extra partnerlogo's rechts bovenaan =====
+const reynaersLogo = new Image();
+const gealanLogo = new Image();
+
+reynaersLogo.src = 'reynaers.png';
+gealanLogo.src = 'gealan.png';
+
+// vaste breedte voor partnerlogo's
+const partnerMaxW = 35;
+let partnerY = 22;
+
+reynaersLogo.onload = function(){
+    const ratio = reynaersLogo.width / reynaersLogo.height;
+    const h = partnerMaxW / ratio;
+    doc.addImage(reynaersLogo, 'PNG', 150, partnerY, partnerMaxW, h);
+};
+
+gealanLogo.onload = function(){
+    const ratio = gealanLogo.width / gealanLogo.height;
+    const h = partnerMaxW / ratio;
+    doc.addImage(gealanLogo, 'PNG', 150, partnerY + 18, partnerMaxW, h);
 
         let yEl=100;
         doc.setFontSize(14); 
@@ -242,3 +265,4 @@ render();
 </script>
 </body>
 </html>
+
