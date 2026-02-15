@@ -25,12 +25,11 @@ select,input,textarea{width:100%;padding:6px;margin:5px 0;border-radius:5px;bord
 #closeCameraBtn{top:20px;right:20px;}
 </style>
 
-<!-- PWA / Startscherm ondersteuning -->
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="Logordb.png">
 <meta name="theme-color" content="#0f2441">
-
 </head>
+
 <body>
 
 <header>
@@ -70,7 +69,6 @@ select,input,textarea{width:100%;padding:6px;margin:5px 0;border-radius:5px;bord
 
 <p id="mailInstructie" style="display:none;">Open het gedownloade PDF-bestand via je bestanden-app om het bij te voegen in Mail.</p>
 
-<!-- CAMERA -->
 <div id="cameraModal">
 <video id="video" autoplay playsinline></video>
 <button id="takePhotoBtn" onclick="takePhoto()">Foto maken</button>
@@ -91,6 +89,7 @@ let pdfGemaakt = false;
 
 function saveMetadata(){ localStorage.setItem("project",JSON.stringify(project)); }
 function nieuwProject(){ if(confirm("Nieuw project starten? Alles wordt gewist.")){ localStorage.removeItem("project"); location.reload(); }}
+
 function voegElementToe(){
     const type=document.getElementById("elementType").value;
     const kamer=document.getElementById("kamer").value;
@@ -146,7 +145,6 @@ async function openCamera(id){ currentElementId=id; cameraModal.style.display="b
 function takePhoto(){ const ctx=canvas.getContext("2d"); canvas.width=video.videoWidth; canvas.height=video.videoHeight; ctx.drawImage(video,0,0); const data=canvas.toDataURL("image/jpeg",0.6); fotosMemory[currentElementId].push(data); closeCamera(); setTimeout(render,150);}
 function closeCamera(){ cameraModal.style.display="none"; if(video.srcObject) video.srcObject.getTracks().forEach(track=>track.stop());}
 
-/* ===== PDF met 6D coverpagina + alle foto's correct en proportioneel ===== */
 function loadImagePromise(src) {
     return new Promise((resolve)=>{ const img=new Image(); img.src=src; img.onload=()=>resolve(img); });
 }
@@ -156,127 +154,37 @@ async function maakPDF(){
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
-    // ===== COVERPAGINA =====
+    // ===== COVER MET 3 LOGO'S =====
+    const logo1 = await loadImagePromise('Logordb.png');
+    const logo2 = await loadImagePromise('reynaers.png');
+    const logo3 = await loadImagePromise('gealan.png');
 
-    // Logo's naast elkaar
-    const logos = ['Logordb.png','reynaers.png','gealan.png'];
     let xStart = 15;
     const yLogo = 15;
     const maxLogoH = 35;
 
-    for(const src of logos){
-        const img = await loadImagePromise(src);
-        let w = img.width;
-        let h = img.height;
-        const ratio = w / h;
+    [logo1,logo2,logo3].forEach(l=>{
+        let w=l.width, h=l.height;
+        const ratio=w/h;
+        if(h>maxLogoH){ h=maxLogoH; w=maxLogoH*ratio; }
+        doc.addImage(l,'PNG',xStart,yLogo,w,h);
+        xStart+=w+8;
+    });
 
-        if(h > maxLogoH){
-            h = maxLogoH;
-            w = maxLogoH * ratio;
-        }
-
-        doc.addImage(img,'PNG',xStart,yLogo,w,h);
-        xStart += w + 8; // ruimte tussen logo's
-    }
-
-    // Header tekst rechts van de logo's
-    doc.setFontSize(12); 
-    doc.setTextColor(15,36,65);
+    doc.setFontSize(12); doc.setTextColor(15,36,65);
     doc.text("Ramen en deuren in hout / pvc / aluminium", xStart,25);
     doc.text("Rolluiken",xStart,32);
     doc.text("Zonwering",xStart,39);
     doc.text("Garagepoorten",xStart,46);
 
-    // Titel
-    doc.setFontSize(20); 
-    doc.text("Nieuwe Opmeting",105,70,{align:"center"});
-    doc.setFontSize(16); 
-    doc.text(`${project.klant}`,105,80,{align:"center"});
-    doc.setFontSize(12); 
-    doc.text(`Datum: ${new Date().toLocaleDateString()}`,150,15);
+    doc.setFontSize(20); doc.text("Nieuwe Opmeting",105,70,{align:"center"});
+    doc.setFontSize(16); doc.text(`${project.klant}`,105,80,{align:"center"});
+    doc.setFontSize(12); doc.text(`Datum: ${new Date().toLocaleDateString()}`,150,15);
 
-    let yEl=100;
-    doc.setFontSize(14); 
-    doc.text("Overzicht aantal elementen:",15,yEl); 
-    yEl+=10;
-
-    const mapping = {"Raam": "Ramen","Deur": "Deuren","Poort": "Poorten"};
-    ["Raam","Deur","Poort"].forEach(t=>{
-        const aantal = project.elementen.filter(e=>e.type===t).length;
-        if(aantal>0){ 
-            doc.text(`${mapping[t]}: ${aantal}`,15,yEl); 
-            yEl+=8;
-        }
-    });
-
-    // ===== DETAILPAGINA'S =====
-    doc.addPage();
-    let y=20;
-    const header=()=>{ 
-        doc.setFontSize(12); 
-        doc.setTextColor(15,36,65); 
-        doc.text(`Nieuwe Opmeting: ${project.klant}`,15,10); 
-        doc.text(`Datum: ${new Date().toLocaleDateString()}`,150,10); 
-        y=20; 
-    }
-    header();
-
-    for(const el of project.elementen.slice().reverse()){
-        doc.setDrawColor(0,0,0); 
-        doc.setLineWidth(0.5); 
-        doc.line(10,y,200,y); 
-        y+=5;
-
-        const nummer=el.type+" "+(()=>{let count=0;for(const e of project.elementen){if(e.type===el.type && project.elementen.indexOf(e)<=project.elementen.indexOf(el)) count++;} return count;})();
-        doc.setFontSize(14); 
-        doc.text(`${nummer} - ${el.kamer}`,15,y); 
-        y+=7;
-
-        if(el.breedte){ doc.text(`Breedte: ${el.breedte} cm`,15,y); y+=7;}
-        if(el.hoogte){ doc.text(`Hoogte: ${el.hoogte} cm`,15,y); y+=7;}
-        if(el.notitie){ doc.text(`Notitie: ${el.notitie}`,15,y); y+=7;}
-
-        let fotoX=15;
-        const maxFotoW=50,maxFotoH=50;
-
-        for(const f of fotosMemory[el.id]){
-            const img=await loadImagePromise(f);
-            let w=img.width,h=img.height;
-            const r=w/h;
-
-            if(w>h){ if(w>maxFotoW){ w=maxFotoW; h=maxFotoW/r; } }
-            else { if(h>maxFotoH){ h=maxFotoH; w=maxFotoH*r; } }
-
-            if(y+h>280){ doc.addPage(); header(); }
-
-            doc.addImage(f,'JPEG',fotoX,y,w,h);
-            fotoX+=w+5;
-            if(fotoX+w>200){ fotoX=15; y+=h+5; }
-        }
-
-        y+=55;
-    }
-
-    doc.setFontSize(10); 
-    doc.setTextColor(100);
-    doc.text("Leopoldlaan 91 9900 Eeklo - Tel 09/343.82.70 - info@ramen-blondeel.be",105,290,{align:"center"});
-
-    const fileName=`${project.klant.replace(/\s+/g,'_')}_${new Date().toISOString().split('T')[0]}.pdf`;
-    doc.save(fileName);
-
-    pdfGemaakt=true;
-    document.getElementById("mailBtn").disabled=false;
-    alert("PDF opgeslagen. Nu kan je project mailen.");
+    doc.save("test.pdf");
 }
 
-}
-
-function mailProject(){ 
-    if(!pdfGemaakt){ alert("Maak eerst de PDF."); return;}
-    const subject=encodeURIComponent(`Nieuwe Opmeting: ${project.klant}`);
-    const body=encodeURIComponent(`Zie bijlage voor het project: ${project.klant}`);
-    window.location.href=`mailto:?subject=${subject}&body=${body}`;
-}
+function mailProject(){ alert("Maak eerst de PDF."); }
 
 document.getElementById("klant").addEventListener("input",e=>{ project.klant=e.target.value; saveMetadata();});
 render();
