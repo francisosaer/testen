@@ -140,7 +140,7 @@ async function openCamera(id){ currentElementId=id; cameraModal.style.display="b
 function takePhoto(){ const ctx=canvas.getContext("2d"); canvas.width=video.videoWidth; canvas.height=video.videoHeight; ctx.drawImage(video,0,0); const data=canvas.toDataURL("image/jpeg",0.6); fotosMemory[currentElementId].push(data); closeCamera(); setTimeout(render,150);}
 function closeCamera(){ cameraModal.style.display="none"; if(video.srcObject) video.srcObject.getTracks().forEach(track=>track.stop());}
 
-/* ===== PDF functie: coverpagina blijft rustig, rest netjes + paginanummering ===== */
+/* ===== PDF functie met cover + overzicht + scheidingslijn + klantnaam + zwarte tekst ===== */
 async function maakPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
@@ -165,14 +165,24 @@ async function maakPDF() {
     const logoHeight = logoWidth / (logo.width / logo.height);
     doc.addImage(logo,'PNG',margin,10,logoWidth,logoHeight);
 
-    doc.setFontSize(11);
-    doc.text("RDB Ramen & Deuren", margin+45,15);
-    doc.text("info@rdbramen.be", margin+45,21);
-    doc.text("0470 00 00 00", margin+45,27);
-    doc.text("BTW BE0000.000.000", margin+45,33);
+    doc.setFontSize(20);
+    doc.text("Nieuwe Opmeting",pageWidth/2,50,{align:"center"});
+    doc.setFontSize(16);
+    doc.text(project.klant,pageWidth/2,60,{align:"center"});
+
+    doc.setFontSize(14);
+    let yEl = 75;
+    const mapping = { "Raam":"Ramen","Deur":"Deuren","Poort":"Poorten" };
+    for(const t of ["Raam","Deur","Poort"]){
+        const aantal = project.elementen.filter(e=>e.type===t).length;
+        if(aantal>0){
+            doc.text(`${mapping[t]}: ${aantal}`,margin,yEl);
+            yEl += 8;
+        }
+    }
 
     doc.setFontSize(12);
-    doc.text(`Datum: ${new Date().toLocaleDateString()}`, pageWidth-60,15);
+    doc.text(`Datum: ${new Date().toLocaleDateString()}`,pageWidth-60,15);
 
     // Partnerlogo's
     const reynaersLogo = await loadImagePromise('reynaers.png');
@@ -184,12 +194,8 @@ async function maakPDF() {
     let h2 = partnerWidth / (gealanLogo.width / gealanLogo.height);
     doc.addImage(gealanLogo,'PNG',pageWidth-50,partnerY+18,partnerWidth,h2);
 
-    doc.setFontSize(18);
-    let y = 50;
-    doc.text("Overzicht aantal elementen", margin,y);
-
-    // ==== ELEMENTEN (vanaf pagina 2) ====
-    y = 20;
+    // ===== ELEMENTEN (vanaf pagina 2) ====
+    yEl = 20;
     doc.addPage();
 
     const lineHeight = 6;
@@ -198,7 +204,6 @@ async function maakPDF() {
     for(const el of project.elementen.slice().reverse()){
         let blockHeight = 0;
         const fotoBlocks = [];
-
         for(const f of fotosMemory[el.id]){
             const img = await loadImagePromise(f);
             let w = fotoMaxWidth;
@@ -206,19 +211,23 @@ async function maakPDF() {
             fotoBlocks.push({src:f,w,h});
             if(h>blockHeight) blockHeight = h;
         }
-
         let textLines = 4;
         if(el.notitie) textLines += doc.splitTextToSize(el.notitie,pageWidth-margin*2-fotoMaxWidth-10).length;
         const textHeight = textLines*lineHeight;
         blockHeight = Math.max(blockHeight,textHeight)+12;
 
-        if(y+blockHeight>pageHeight-bottomMargin){
+        if(yEl+blockHeight>pageHeight-bottomMargin){
             doc.addPage();
-            y = 20;
+            yEl = 20;
         }
 
+        // Scheidingslijn boven elk element
+        doc.setDrawColor(0,0,0);
+        doc.setLineWidth(0.5);
+        doc.line(margin,yEl-2,pageWidth-margin,yEl-2);
+
         let fotoX = margin;
-        let fotoY = y;
+        let fotoY = yEl;
         for(const fb of fotoBlocks){
             if(fotoX + fb.w > pageWidth-margin){
                 fotoX = margin;
@@ -229,19 +238,20 @@ async function maakPDF() {
         }
 
         const textX = margin + fotoMaxWidth*fotoBlocks.length + 10;
-        let textY = y;
-        doc.text(`Ruimte: ${el.kamer}`,textX,textY); textY+=lineHeight;
-        if(el.breedte){ doc.text(`Breedte: ${el.breedte} cm`,textX,textY); textY+=lineHeight; }
-        if(el.hoogte){ doc.text(`Hoogte: ${el.hoogte} cm`,textX,textY); textY+=lineHeight; }
+        let textY = yEl;
+        doc.setFontSize(12);
+        doc.text(`${el.type} - ${el.kamer}`,textX,textY); textY += lineHeight;
+        if(el.breedte){ doc.text(`Breedte: ${el.breedte} cm`,textX,textY); textY += lineHeight; }
+        if(el.hoogte){ doc.text(`Hoogte: ${el.hoogte} cm`,textX,textY); textY += lineHeight; }
         if(el.notitie){
             const splitNote = doc.splitTextToSize(el.notitie,pageWidth-textX-margin);
             doc.text(splitNote,textX,textY);
         }
 
-        y += blockHeight;
+        yEl += blockHeight;
     }
 
-    // Pagina nummering vanaf tweede pagina
+    // Pagina nummering vanaf pagina 2
     const pageCount = doc.getNumberOfPages();
     for(let i=2;i<=pageCount;i++){
         doc.setPage(i);
@@ -273,3 +283,4 @@ render();
 </script>
 </body>
 </html>
+
