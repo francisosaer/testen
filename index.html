@@ -24,12 +24,6 @@ select,input,textarea{width:100%;padding:6px;margin:5px 0;border-radius:5px;bord
 #takePhotoBtn{bottom:30px;left:50%;transform:translateX(-50%);}
 #closeCameraBtn{top:20px;right:20px;}
 </style>
-
-<!-- PWA / Startscherm ondersteuning -->
-<link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="Logordb.png">
-<meta name="theme-color" content="#0f2441">
-
 </head>
 <body>
 
@@ -51,7 +45,7 @@ select,input,textarea{width:100%;padding:6px;margin:5px 0;border-radius:5px;bord
 <option>Eetplaats</option>
 <option>Gang</option>
 <option>Toilet</option>
-<option>Andere</option>
+<option>Ander</option>
 </select>
 
 <h3>Kies element</h3>
@@ -146,9 +140,13 @@ async function openCamera(id){ currentElementId=id; cameraModal.style.display="b
 function takePhoto(){ const ctx=canvas.getContext("2d"); canvas.width=video.videoWidth; canvas.height=video.videoHeight; ctx.drawImage(video,0,0); const data=canvas.toDataURL("image/jpeg",0.6); fotosMemory[currentElementId].push(data); closeCamera(); setTimeout(render,150);}
 function closeCamera(){ cameraModal.style.display="none"; if(video.srcObject) video.srcObject.getTracks().forEach(track=>track.stop());}
 
-/* ===== PDF met 6D coverpagina + alle foto's correct en proportioneel ===== */
-function loadImagePromise(src) {
-    return new Promise((resolve)=>{ const img=new Image(); img.src=src; img.onload=()=>resolve(img); });
+/* ===== PDF met 6D coverpagina + partnerlogo's + alle foto's correct ===== */
+function loadImagePromise(src){
+    return new Promise((resolve)=>{
+        const img = new Image();
+        img.src = src;
+        img.onload = ()=>resolve(img);
+    });
 }
 
 async function maakPDF(){
@@ -157,102 +155,97 @@ async function maakPDF(){
     const doc = new jsPDF();
 
     // Coverpagina
-    const logo = new Image();
-    logo.src='Logordb.png';
-    logo.onload = async function(){
-        const maxLogoW=40,maxLogoH=40;
-        let w=maxLogoW,h=maxLogoH;
-        const ratio=logo.width/logo.height;
-        if(ratio>1){ h=maxLogoW/ratio; } else { w=maxLogoH*ratio; }
-        doc.addImage(logo,'PNG',15,15,w,h);
+    const logo = await loadImagePromise('Logordb.png');
 
-        doc.setFontSize(12); doc.setTextColor(15,36,65);
-        doc.text("Ramen en deuren in hout / pvc / aluminium", 60,25);
-        doc.text("Rolluiken",60,32);
-        doc.text("Zonwering",60,39);
-        doc.text("Garagepoorten",60,46);
+    // --- Logordb linksboven ---
+    const maxLogoW=40,maxLogoH=40;
+    let w=maxLogoW,h=maxLogoH;
+    const ratio=logo.width/logo.height;
+    if(ratio>1){ h=maxLogoW/ratio; } else { w=maxLogoH*ratio; }
+    doc.addImage(logo,'PNG',15,15,w,h);
 
-        doc.setFontSize(20); doc.text("Nieuwe Opmeting",105,70,{align:"center"});
-        doc.setFontSize(16); doc.text(`${project.klant}`,105,80,{align:"center"});
-       doc.setFontSize(12); 
-doc.text(`Datum: ${new Date().toLocaleDateString()}`,150,15);
+    doc.setFontSize(12); doc.setTextColor(15,36,65);
+    doc.text("Ramen en deuren in hout / pvc / aluminium", 60,25);
+    doc.text("Rolluiken",60,32);
+    doc.text("Zonwering",60,39);
+    doc.text("Garagepoorten",60,46);
 
-// ===== Extra partnerlogo's rechts bovenaan =====
-const reynaersLogo = new Image();
-const gealanLogo = new Image();
+    doc.setFontSize(20); doc.text("Nieuwe Opmeting",105,70,{align:"center"});
+    doc.setFontSize(16); doc.text(`${project.klant}`,105,80,{align:"center"});
 
-reynaersLogo.src = 'reynaers.png';
-gealanLogo.src = 'gealan.png';
+    // --- Datum rechtsboven ---
+    doc.setFontSize(12);
+    doc.text(`Datum: ${new Date().toLocaleDateString()}`, 150, 15);
 
-// vaste breedte voor partnerlogo's
-const partnerMaxW = 35;
-let partnerY = 22;
+    // --- Partnerlogo's rechtsboven ---
+    const reynaersLogo = await loadImagePromise('reynaers.png');
+    const gealanLogo = await loadImagePromise('gealan.png');
+    const partnerMaxW = 35;
+    let partnerY = 22;
 
-reynaersLogo.onload = function(){
-    const ratio = reynaersLogo.width / reynaersLogo.height;
-    const h = partnerMaxW / ratio;
-    doc.addImage(reynaersLogo, 'PNG', 150, partnerY, partnerMaxW, h);
-};
+    // Reynaers
+    w = partnerMaxW;
+    h = partnerMaxW / (reynaersLogo.width / reynaersLogo.height);
+    doc.addImage(reynaersLogo, 'PNG', 150, partnerY, w, h);
 
-gealanLogo.onload = function(){
-    const ratio = gealanLogo.width / gealanLogo.height;
-    const h = partnerMaxW / ratio;
+    // Gealan onder Reynaers
+    h = partnerMaxW / (gealanLogo.width / gealanLogo.height);
     doc.addImage(gealanLogo, 'PNG', 150, partnerY + 18, partnerMaxW, h);
-};
 
+    // --- Overzicht aantal elementen ---
+    let yEl=100;
+    doc.setFontSize(14); 
+    doc.text("Overzicht aantal elementen:",15,yEl); 
+    yEl+=10;
 
-        let yEl=100;
-        doc.setFontSize(14); 
-        doc.text("Overzicht aantal elementen:",15,yEl); 
-        yEl+=10;
-
-        const mapping = {"Raam": "Ramen","Deur": "Deuren","Poort": "Poorten"};
-        ["Raam","Deur","Poort"].forEach(t=>{
-            const aantal = project.elementen.filter(e=>e.type===t).length;
-            if(aantal>0){ 
-                doc.text(`${mapping[t]}: ${aantal}`,15,yEl); 
-                yEl+=8;
-            }
-        });
-
-        doc.addPage();
-        let y=20;
-        const header=()=>{ doc.setFontSize(12); doc.setTextColor(15,36,65); doc.text(`Nieuwe Opmeting: ${project.klant}`,15,10); doc.text(`Datum: ${new Date().toLocaleDateString()}`,150,10); y=20; }
-        header();
-
-        for(const el of project.elementen.slice().reverse()){
-            doc.setDrawColor(0,0,0); doc.setLineWidth(0.5); doc.line(10,y,200,y); y+=5;
-            const nummer=el.type+" "+(()=>{let count=0;for(const e of project.elementen){if(e.type===el.type && project.elementen.indexOf(e)<=project.elementen.indexOf(el)) count++;} return count;})();
-            doc.setFontSize(14); doc.text(`${nummer} - ${el.kamer}`,15,y); y+=7;
-            if(el.breedte){ doc.text(`Breedte: ${el.breedte} cm`,15,y); y+=7;}
-            if(el.hoogte){ doc.text(`Hoogte: ${el.hoogte} cm`,15,y); y+=7;}
-            if(el.notitie){ doc.text(`Notitie: ${el.notitie}`,15,y); y+=7;}
-
-            let fotoX=15;
-            const maxFotoW=50,maxFotoH=50;
-            for(const f of fotosMemory[el.id]){
-                const img=await loadImagePromise(f);
-                let w=img.width,h=img.height;
-                const r=w/h;
-                if(w>h){ if(w>maxFotoW){ w=maxFotoW; h=maxFotoW/r; } }
-                else { if(h>maxFotoH){ h=maxFotoH; w=maxFotoH*r; } }
-                if(y+h>280){ doc.addPage(); header(); }
-                doc.addImage(f,'JPEG',fotoX,y,w,h);
-                fotoX+=w+5;
-                if(fotoX+w>200){ fotoX=15; y+=h+5; }
-            }
-            y+=55;
+    const mapping = { "Raam":"Ramen", "Deur":"Deuren", "Poort":"Poorten" };
+    ["Raam","Deur","Poort"].forEach(t=>{
+        const aantal = project.elementen.filter(e=>e.type===t).length;
+        if(aantal>0){ 
+            doc.text(`${mapping[t]}: ${aantal}`,15,yEl); 
+            yEl+=8;
         }
+    });
 
-        doc.setFontSize(10); doc.setTextColor(100);
-        doc.text("Leopoldlaan 91 9900 Eeklo - Tel 09/343.82.70 - info@ramen-blondeel.be",105,290,{align:"center"});
+    // --- Elementen en foto's ---
+    doc.addPage();
+    let y=20;
+    const header=()=>{ doc.setFontSize(12); doc.setTextColor(15,36,65); doc.text(`Nieuwe Opmeting: ${project.klant}`,15,10); doc.text(`Datum: ${new Date().toLocaleDateString()}`,150,10); y=20; }
+    header();
 
-        const fileName=`${project.klant.replace(/\s+/g,'_')}_${new Date().toISOString().split('T')[0]}.pdf`;
-        doc.save(fileName);
-        pdfGemaakt=true;
-        document.getElementById("mailBtn").disabled=false;
-        alert("PDF opgeslagen. Nu kan je project mailen.");
+    for(const el of project.elementen.slice().reverse()){
+        doc.setDrawColor(0,0,0); doc.setLineWidth(0.5); doc.line(10,y,200,y); y+=5;
+        const nummer=el.type+" "+(()=>{let count=0;for(const e of project.elementen){if(e.type===el.type && project.elementen.indexOf(e)<=project.elementen.indexOf(el)) count++;} return count;})();
+        doc.setFontSize(14); doc.text(`${nummer} - ${el.kamer}`,15,y); y+=7;
+        if(el.breedte){ doc.text(`Breedte: ${el.breedte} cm`,15,y); y+=7;}
+        if(el.hoogte){ doc.text(`Hoogte: ${el.hoogte} cm`,15,y); y+=7;}
+        if(el.notitie){ doc.text(`Notitie: ${el.notitie}`,15,y); y+=7;}
+
+        let fotoX=15;
+        const maxFotoW=50,maxFotoH=50;
+        for(const f of fotosMemory[el.id]){
+            const img=await loadImagePromise(f);
+            let w=img.width,h=img.height;
+            const r=w/h;
+            if(w>h){ if(w>maxFotoW){ w=maxFotoW; h=maxFotoW/r; } }
+            else { if(h>maxFotoH){ h=maxFotoH; w=maxFotoH*r; } }
+            if(y+h>280){ doc.addPage(); header(); }
+            doc.addImage(f,'JPEG',fotoX,y,w,h);
+            fotoX+=w+5;
+            if(fotoX+w>200){ fotoX=15; y+=h+5; }
+        }
+        y+=55;
     }
+
+    // --- Footer ---
+    doc.setFontSize(10); doc.setTextColor(100);
+    doc.text("Leopoldlaan 91 9900 Eeklo - Tel 09/343.82.70 - info@ramen-blondeel.be",105,290,{align:"center"});
+
+    const fileName=`${project.klant.replace(/\s+/g,'_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+    doc.save(fileName);
+    pdfGemaakt=true;
+    document.getElementById("mailBtn").disabled=false;
+    alert("PDF opgeslagen. Nu kan je project mailen.");
 }
 
 function mailProject(){ 
@@ -267,4 +260,3 @@ render();
 </script>
 </body>
 </html>
-
