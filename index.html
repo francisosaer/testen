@@ -174,7 +174,7 @@ async function maakPDF(){
     const reynaers = await loadImagePromise('reynaers.png');
     const gealan = await loadImagePromise('gealan.png');
     const partnerW = 50;
-    const space = 5;
+    const space = 2;
     const reynaersH = partnerW / (reynaers.width/reynaers.height);
     const gealanH = partnerW / (gealan.width/gealan.height);
     const logosX = pageWidth - margin - partnerW;
@@ -269,5 +269,6 @@ render();
 </script>
 </body>
 </html>
+
 
 
