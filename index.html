@@ -183,9 +183,38 @@ async function maakPDF(){
     });
 
    // Extra logo's onder datum
+// Extra logo's onder datum (dubbel zo groot)
 const logoRey = await loadImagePromise('reynaers.png');
 const logoGea = await loadImagePromise('gealan.png');
-const logoMaxW=35, logoMaxH=35;
+
+// Dubbele grootte
+const logoMaxW = 70;
+const logoMaxH = 70;
+
+// Reynaers
+let ratioR = logoRey.width / logoRey.height;
+let wR = logoMaxW, hR = logoMaxH;
+
+if (ratioR > 1) {
+    hR = logoMaxW / ratioR;
+} else {
+    wR = logoMaxH * ratioR;
+}
+
+doc.addImage(logoRey, 'PNG', 135, 25, wR, hR);
+
+// Gealan
+let ratioG = logoGea.width / logoGea.height;
+let wG = logoMaxW, hG = logoMaxH;
+
+if (ratioG > 1) {
+    hG = logoMaxW / ratioG;
+} else {
+    wG = logoMaxH * ratioG;
+}
+
+doc.addImage(logoGea, 'PNG', 135, 25 + hR + 5, wG, hG);
+
     
     let ratioR=logoRey.width/logoRey.height;
     let wR=logoMaxW,hR=logoMaxH;
@@ -267,5 +296,6 @@ render();
 </script>
 </body>
 </html>
+
 
 
